@@ -1,0 +1,2674 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Gestionnaire de Bilans Kiné - Gériatrie</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #0b7dda;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+        }
+
+        .section {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: fadeIn 0.3s;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="date"],
+        input[type="number"],
+        input[type="time"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 6px;
+            min-width: 40px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 30px 0;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .comparison-card {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .comparison-card h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .metric-value {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .exercise-list {
+            list-style: none;
+        }
+
+        .exercise-item {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 4px solid #2196F3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .exercise-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .unique-link {
+            background: #f0f0f0;
+            padding: 12px;
+            border-radius: 6px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin: 10px 0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .card-title {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .patient-card {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin: 15px 0;
+        }
+
+        .patient-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 10px 0;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline-item {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .timeline-date {
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .test-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            margin: 0;
+            font-weight: normal;
+            gap: 8px;
+        }
+
+        .radio-group input[type="radio"] {
+            width: auto;
+            margin: 0;
+            border: none;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            margin: 0;
+            font-weight: normal;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            border: none;
+            cursor: pointer;
+        }
+
+        .scoring-box {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .scoring-box strong {
+            color: #2e7d32;
+            font-size: 1.1em;
+        }
+
+        .time-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .time-input-group input {
+            flex: 1;
+        }
+
+        .time-input-group span {
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .form-row,
+            .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .radio-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        .patient-mode-box, .patient-input-toggle { background:#f7f9ff; border:1px solid #dbe2ff; border-radius:10px; padding:14px; margin:15px 0; }
+        .patient-mode-box p, .patient-input-toggle span { color:#666; font-size:.9em; margin:6px 0 10px; display:block; }
+        .bilan-projet { border:2px solid #667eea; background:#fafbff; padding:15px; border-radius:10px; margin:15px 0; }
+        .share-link { background:#fff; border:1px dashed #667eea; padding:10px; border-radius:8px; word-break:break-all; }
+        .exercise-card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:15px; margin:10px 0; }
+        .exercise-card a { display:inline-block; margin-top:8px; font-weight:600; }
+
+        :root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+        html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+        img, canvas, video { max-width: 100%; }
+        .backup-note { grid-column: 1 / -1; width: 100%; text-align: center; color: #fff; font-size: .85em; opacity: .9; }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .section { padding: 16px; border-radius: 10px; }
+            header { margin-bottom: 16px; }
+            header h1 { font-size: 1.4em; }
+            .nav-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+            .nav-buttons button { padding: 12px 8px; font-size: .95em; }
+            .patient-info, .comparison-grid { grid-template-columns: 1fr; }
+            .chart-container { height: 280px; margin: 16px 0; }
+            input[type="text"], input[type="email"], input[type="date"], input[type="number"], input[type="time"], input[type="url"], textarea, select { font-size: 16px; }
+            table { display: block; overflow-x: auto; }
+            .exercise-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+
+        #zoneImpression{display:none}
+        @media print {
+            html, body { background:#fff !important; padding:0 !important; margin:0 !important; }
+            body.impression > *:not(#zoneImpression) { display:none !important; }
+            body.impression #zoneImpression { display:block !important; }
+            #zoneImpression * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+            #zoneImpression .test-section { break-inside:avoid-page; page-break-inside:avoid; }
+            @page { size:A4; margin:10mm; }
+        }
+        .bz{cursor:pointer;stroke:#667eea;stroke-width:1.5}
+        .bz.sel{stroke:#111;stroke-width:3.5}
+        .accessoire>summary{cursor:pointer;font-weight:700;font-size:1.1em;color:#333;padding:4px 0}
+        .accessoire[open]>summary{margin-bottom:14px}
+        .legende-mrc{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.8em;margin:10px 0;justify-content:center}
+        .legende-mrc i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏥 Gestionnaire de Bilans Kiné - Gériatrie</h1>
+            <p>Suivi complet avec tests gériatriques avancés</p>
+        </header>
+
+        <div class="nav-buttons">
+            <button class="btn-primary" onclick="showSection('nouveau-patient')">➕ Nouveau Patient</button>
+            <button class="btn-secondary" onclick="showSection('mes-patients')">👥 Mes Patients</button>
+            <button class="btn-secondary" onclick="showSection('bilan-geriatrie')">👴 Bilan Gériatrie</button>
+            <button class="btn-secondary" onclick="showSection('suivi')">📊 Suivi Évolution</button>
+            <button class="btn-secondary" onclick="showSection('exercices')">🏋️ Exercices</button>
+            <button type="button" class="btn-primary" onclick="exporterSauvegarde()">💾 Sauvegarder</button>
+            <button type="button" class="btn-secondary" onclick="document.getElementById('fichierRestauration').click()">📂 Restaurer</button>
+            <input type="file" id="fichierRestauration" accept=".json,application/json" style="display:none" onchange="importerSauvegarde(this)">
+            <p class="backup-note" id="derniereSauvegarde"></p>
+        </div>
+
+        <!-- SECTION: NOUVEAU PATIENT -->
+        <div id="nouveau-patient" class="section active">
+            <h2 class="card-title">➕ Créer un Nouveau Patient</h2>
+            <div class="form-group">
+                <label>Nom complet:</label>
+                <input type="text" id="nom" placeholder="Jean Dupont">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="email" placeholder="jean@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Téléphone:</label>
+                    <input type="text" id="telephone" placeholder="06 12 34 56 78">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date de naissance:</label>
+                    <input type="date" id="dateNaissance">
+                </div>
+                <div class="form-group">
+                    <label>Genre:</label>
+                    <select id="genre">
+                        <option>Sélectionner...</option>
+                        <option>Homme</option>
+                        <option>Femme</option>
+                        <option>Autre</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Motif de consultation:</label>
+                <textarea id="motif" placeholder="Décrivez le motif principal..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Antécédents médicaux:</label>
+                <textarea id="antecedents" placeholder="Listez les antécédents importants..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>🗣️ Attentes du patient / ce qu'il souhaite améliorer:</label>
+                <textarea id="attentesPatient" placeholder="Ex : marcher sans douleur, reprendre le jardinage, être plus autonome..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>🎯 Objectifs exprimés par le patient:</label>
+                <textarea id="objectifsPatient" placeholder="Objectifs personnels du patient..."></textarea>
+            </div>
+            <div class="patient-mode-box">
+                <strong>📱 Remplissage par le patient</strong>
+                <p>Le patient pourra compléter ces informations lui-même depuis un lien dédié. La synchronisation à distance sera activée avec la base sécurisée.</p>
+                <button type="button" class="btn-secondary" onclick="preparerLienPatient()">🔗 Préparer le lien patient</button>
+                <div id="lienPatientContainer" style="margin-top:10px;"></div>
+            </div>
+            <button class="btn-primary" onclick="creerPatient()">💾 Enregistrer Patient</button>
+        </div>
+
+        <!-- SECTION: MES PATIENTS -->
+        <div id="mes-patients" class="section">
+            <h2 class="card-title">👥 Liste de Mes Patients</h2>
+            <div id="listePatientsContainer"></div>
+        </div>
+
+        <!-- SECTION: BILAN GÉRIATRIE -->
+        <div id="bilan-geriatrie" class="section">
+            <h2 class="card-title">👴 Bilan Gériatrique Complet</h2>
+            <div class="form-group">
+                <label>Sélectionner un patient:</label>
+                <select id="selectPatientGeriatrie" onchange="chargerPatientPourGeriatrie()">
+                    <option value="">Choisir un patient...</option>
+                </select>
+            </div>
+
+            <div id="bilanActionsMobile" style="display:none; margin: 15px 0;" class="button-group">
+                <button type="button" class="btn-secondary" onclick="nouveauBilan()">🆕 Nouveau bilan</button>
+                <button type="button" class="btn-secondary" onclick="chargerDernierBilan()">↩️ Charger le dernier</button>
+                <span id="bilanModeLabel" style="align-self:center; font-weight:600; color:#555;"></span>
+            </div>
+
+            <div id="bilanGeriatrieForm" style="display: none;">
+
+                <div class="test-section bilan-projet">
+                    <h3>🗣️ Avant de commencer le bilan</h3>
+                    <div class="form-group">
+                        <label>Attentes du patient:</label>
+                        <textarea id="attentes_bilan" placeholder="Qu'attend le patient de la prise en charge ?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Objectifs du patient:</label>
+                        <textarea id="objectifs_patient_bilan" placeholder="Objectifs fonctionnels/personnels prioritaires..."></textarea>
+                    </div>
+                </div>
+
+                                <!-- AUDITION ET VISION -->
+                <div class="test-section" id="sectionSens">
+                    <h3>👂 Audition et vision</h3>
+                    <div class="form-group">
+                        <label>Problème auditif :</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="audition_probleme" value="non"> Non</label>
+                            <label><input type="radio" name="audition_probleme" value="oui"> Oui</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Appareil auditif :</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="audition_appareil" value="non"> Non</label>
+                            <label><input type="radio" name="audition_appareil" value="oui"> Oui</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Problème visuel :</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="vision_probleme" value="non"> Non</label>
+                            <label><input type="radio" name="vision_probleme" value="oui"> Oui</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Lunettes / lentilles :</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="vision_lunettes" value="non"> Non</label>
+                            <label><input type="radio" name="vision_lunettes" value="oui"> Oui</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ÉVALUATION DE LA DOULEUR -->
+                <div class="test-section" id="sectionDouleur">
+                    <h3>🔥 Évaluation de la douleur</h3>
+                    <p style="color:#666;font-size:.9em;margin-bottom:12px">Où, quand, comment et quelle intensité (EVA : 0 = aucune douleur, 10 = douleur maximale imaginable). Ajoutez autant de zones que nécessaire ; ne rien ajouter si le patient n'a pas de douleur.</p>
+                    <div data-pdf-skip>
+                        <div class="form-group"><label>Zone douloureuse :</label><select id="douleur_zone_sel"></select></div>
+                        <button type="button" class="btn-primary" onclick="ajouterZoneDouleur()">➕ Ajouter cette zone</button>
+                    </div>
+                    <div id="douleurListe" style="margin-top:12px"></div>
+                    <textarea id="douleur_data" data-pdf-skip style="display:none"></textarea>
+                </div>
+
+                                <!-- TESTS DE FORCE ET PRÉHENSION -->
+                <div class="test-section">
+                    <h3>💪 Tests de Force</h3>
+
+                    <!-- GRIP TEST -->
+                    <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0; border: 2px solid #667eea;">
+                        <h4>🤝 Test de Préhension (Grip Test)</h4>
+                        <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">Force de préhension en kg (Dynamomètre)</p>
+                        <p style="color:#666;font-size:.85em;margin-bottom:12px">2 essais par main (assis, coude à 90°). Le meilleur résultat est retenu pour l'interprétation.</p>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Main droite - Essai 1 (kg):</label>
+                                <input type="number" id="grip_droite_1" min="0" step="0.1" placeholder="Ex: 25.5" onchange="calculerGripMoyen()">
+                            </div>
+                            <div class="form-group">
+                                <label>Main droite - Essai 2 (kg):</label>
+                                <input type="number" id="grip_droite_2" min="0" step="0.1" placeholder="Ex: 26.0" onchange="calculerGripMoyen()">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Main gauche - Essai 1 (kg):</label>
+                                <input type="number" id="grip_gauche_1" min="0" step="0.1" placeholder="Ex: 22.5" onchange="calculerGripMoyen()">
+                            </div>
+                            <div class="form-group">
+                                <label>Main gauche - Essai 2 (kg):</label>
+                                <input type="number" id="grip_gauche_2" min="0" step="0.1" placeholder="Ex: 23.0" onchange="calculerGripMoyen()">
+                            </div>
+                        </div>
+                        <div class="scoring-box">
+                            <strong>Moyenne main droite: <span id="grip_moyenne_droite">--</span> kg</strong><br>
+                            <strong>Moyenne main gauche: <span id="grip_moyenne_gauche">--</span> kg</strong><br>
+                            <strong>Meilleur résultat: <span id="grip_best">--</span> kg</strong>
+                            <div id="grip_interpretation" style="margin-top:10px;font-size:.92em"></div>
+                        </div>
+                    </div>
+
+
+                    <!-- FORCE MUSCULAIRE GÉNÉRALE -->
+                    <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0; border: 2px solid #667eea;">
+                        <h4>💪 Force Musculaire Générale</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Membres supérieurs (0-10):</label>
+                                <div class="slider-group">
+                                    <input type="range" id="force_ms" min="0" max="10" value="5" oninput="updateSlider('force_ms')">
+                                    <span class="slider-value" id="force_msValue">5</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Membres inférieurs (0-10):</label>
+                                <div class="slider-group">
+                                    <input type="range" id="force_mi" min="0" max="10" value="5" oninput="updateSlider('force_mi')">
+                                    <span class="slider-value" id="force_miValue">5</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background:white;padding:15px;border-radius:6px;margin:15px 0;border:2px solid #667eea">
+                        <div class="form-group"><label>📝 Notes - force musculaire</label><textarea id="notes_force" placeholder="Observations, compensations, fatigabilité…"></textarea></div>
+                        <h4>🧍 Body scan - force par zone (échelle MRC 0-5)</h4>
+                        <p style="color:#666;font-size:.9em;margin-bottom:10px">Touchez une zone, cotez-la puis validez : elle se colore sur le corps. Droite du patient à gauche de l'image.</p>
+                        <div id="bodyScan"></div>
+                        <div id="forcePanel" class="patient-mode-box" data-pdf-skip></div>
+                        <div id="forceRecap" style="margin-top:10px"></div>
+                        <textarea id="force_scan_data" data-pdf-skip style="display:none"></textarea>
+                    </div>
+                </div>
+
+                <!-- ÉVALUATION ARTICULAIRE (optionnelle) -->
+                <details class="test-section accessoire" id="sectionArtic">
+                    <summary>🦴 Évaluation articulaire - optionnel (toucher pour ouvrir)</summary>
+                    <p style="color:#666;font-size:.9em;margin-bottom:10px">Touchez une articulation, indiquez la limitation et sa cause, puis validez : elle se colore sur le corps. Droite du patient à gauche de l'image.</p>
+                    <div id="articScan"></div>
+                    <div id="articPanel" class="patient-mode-box" data-pdf-skip></div>
+                    <div id="articRecap" style="margin:10px 0"></div>
+                    <div class="form-group"><label>📝 Notes - évaluation articulaire</label><textarea id="notes_artic" placeholder="Observations, fin de course, douleur en fin d'amplitude…"></textarea></div>
+                    <textarea id="artic_scan_data" data-pdf-skip style="display:none"></textarea>
+                </details>
+
+                <!-- TESTS D'ÉQUILIBRE ET MOBILITÉ -->
+                <div class="test-section">
+                    <h3>🧍 Tests d'Équilibre et Mobilité</h3>
+
+                    <!-- TINETTI TEST : score final -->
+                    <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0; border: 2px solid #667eea;">
+                        <h4>📋 Test de Tinetti (POMA) - score final</h4>
+                        <p style="color: #666; font-size: 0.9em; margin-bottom: 12px;">Équilibre /16 + Marche /12 = total /28. Saisissez le score final obtenu.</p>
+                        <div class="form-group">
+                            <label>Score total Tinetti (0-28) :</label>
+                            <input type="number" id="tinetti_score_total" min="0" max="28" step="1" inputmode="numeric" placeholder="Ex : 22" oninput="calculerTinettiTotal()">
+                        </div>
+                        <div class="scoring-box"><div id="tinetti_interpretation">Score à renseigner</div></div>
+                    </div>
+
+                    <!-- TEST LEVER DE CHAISE 5 RÉPÉTITIONS -->
+                    <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0; border: 2px solid #667eea;">
+                        <h4>🪑 Test Lever de Chaise (5 répétitions)</h4>
+                        <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">Temps de lever et s'asseoir 5 fois sans aide des bras (Normal &lt; 12s)</p>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Temps total (en secondes):</label>
+                                <input type="number" id="test_lever_chaise_temps" min="0" step="0.1" placeholder="Ex: 10.5" onchange="calculerScoreLeverChaise()">
+                            </div>
+                            <div class="form-group">
+                                <label>Remarques:</label>
+                                <input type="text" id="test_lever_chaise_remarques" placeholder="Équilibre, fatigue, etc.">
+                            </div>
+                        </div>
+                        <div class="scoring-box">
+                            <strong id="score_lever_chaise">Score: À remplir</strong>
+                        </div>
+                    </div>
+
+                    <!-- TEST TUG (Timed Up and Go) -->
+                    <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0; border: 2px solid #667eea;">
+                        <h4>⏱️ Test TUG (Timed Up and Go)</h4>
+                        <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">Lever, marcher 3m, faire demi-tour, revenir (Normal &lt; 12s / Risque de chute > 14s)</p>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Temps total (en secondes):</label>
+                                <input type="number" id="test_tug_temps" min="0" step="0.1" placeholder="Ex: 15.2" onchange="calculerScoreTUG()">
+                            </div>
+                            <div class="form-group">
+                                <label>Remarques:</label>
+                                <input type="text" id="test_tug_remarques" placeholder="Déséquilibres, hésitations, etc.">
+                            </div>
+                        </div>
+                        <div class="scoring-box">
+                            <strong id="score_tug">Score: À remplir</strong>
+                        </div>
+                    </div>
+
+                    <!-- VITESSE DE MARCHE 4M -->
+                    <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0; border: 2px solid #667eea;">
+                        <h4>🚶 Vitesse de Marche (4m)</h4>
+                        <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">Distance: 4 mètres (Vitesse normale: &gt; 1.2 m/s)</p>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Temps pour 4m (en secondes):</label>
+                                <input type="number" id="vitesse_marche_temps" min="0" step="0.1" placeholder="Ex: 3.5" onchange="calculerVitesseMarche()">
+                            </div>
+                            <div class="form-group">
+                                <label>Vitesse calculée:</label>
+                                <input type="text" id="vitesse_marche_result" readonly placeholder="m/s">
+                            </div>
+                        </div>
+                        <div class="scoring-box">
+                            <strong id="score_vitesse_marche">Vitesse: À remplir</strong>
+                        </div>
+                    </div>
+
+                    <!-- TEST ÉQUILIBRE (DURÉE) -->
+                    <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0; border: 2px solid #667eea;">
+                        <h4>⚖️ Test d'Équilibre Statique</h4>
+                        <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">Durée en appui unipodal (Normal: &gt; 30s par jambe)</p>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Appui jambe gauche (secondes):</label>
+                                <input type="number" id="equilibre_jambe_gauche" min="0" step="0.1" placeholder="Ex: 35" onchange="convertirEquilibreToScore()">
+                            </div>
+                            <div class="form-group">
+                                <label>Appui jambe droite (secondes):</label>
+                                <input type="number" id="equilibre_jambe_droite" min="0" step="0.1" placeholder="Ex: 35" onchange="convertirEquilibreToScore()">
+                            </div>
+                        </div>
+                        <div class="scoring-box">
+                            <strong id="score_equilibre">Score équilibre: À remplir</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ÉVALUATION DE LA PEUR DE CHUTER (FES-I) -->
+                <div class="test-section">
+                    <h3>😨 Peur de Chuter (FES-I Simplifié)</h3>
+                    <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">Évaluation de la confiance en équilibre et peur de chuter (Score 7-28: 7=pas de peur, 28=très peur)</p>
+
+                    <div style="background: white; padding: 15px; border-radius: 6px;">
+                        <div class="form-group">
+                            <label>1. Vous vous sentez inquiet quand vous marchez seul?</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="fes_1" value="1"> Pas du tout</label>
+                                <label><input type="radio" name="fes_1" value="2"> Un peu</label>
+                                <label><input type="radio" name="fes_1" value="3"> Modérément</label>
+                                <label><input type="radio" name="fes_1" value="4"> Très</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>2. Vous vous sentez inquiet quand vous montez les escaliers?</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="fes_2" value="1"> Pas du tout</label>
+                                <label><input type="radio" name="fes_2" value="2"> Un peu</label>
+                                <label><input type="radio" name="fes_2" value="3"> Modérément</label>
+                                <label><input type="radio" name="fes_2" value="4"> Très</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>3. Vous vous sentez inquiet quand vous nettoyez la maison?</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="fes_3" value="1"> Pas du tout</label>
+                                <label><input type="radio" name="fes_3" value="2"> Un peu</label>
+                                <label><input type="radio" name="fes_3" value="3"> Modérément</label>
+                                <label><input type="radio" name="fes_3" value="4"> Très</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>4. Vous vous sentez inquiet quand vous vous habillez ou déshabiliez?</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="fes_4" value="1"> Pas du tout</label>
+                                <label><input type="radio" name="fes_4" value="2"> Un peu</label>
+                                <label><input type="radio" name="fes_4" value="3"> Modérément</label>
+                                <label><input type="radio" name="fes_4" value="4"> Très</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>5. Vous vous sentez inquiet quand vous descendez les escaliers?</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="fes_5" value="1"> Pas du tout</label>
+                                <label><input type="radio" name="fes_5" value="2"> Un peu</label>
+                                <label><input type="radio" name="fes_5" value="3"> Modérément</label>
+                                <label><input type="radio" name="fes_5" value="4"> Très</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>6. Vous vous sentez inquiet quand vous êtes dans une foule?</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="fes_6" value="1"> Pas du tout</label>
+                                <label><input type="radio" name="fes_6" value="2"> Un peu</label>
+                                <label><input type="radio" name="fes_6" value="3"> Modérément</label>
+                                <label><input type="radio" name="fes_6" value="4"> Très</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>7. Vous vous sentez inquiet quand vous êtes sur une surface inégale?</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="fes_7" value="1"> Pas du tout</label>
+                                <label><input type="radio" name="fes_7" value="2"> Un peu</label>
+                                <label><input type="radio" name="fes_7" value="3"> Modérément</label>
+                                <label><input type="radio" name="fes_7" value="4"> Très</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="scoring-box" style="margin-top: 15px;">
+                        <strong>Score FES-I: <span id="score_fes_i">--</span>/28</strong>
+                        <br>
+                        <span id="interpretation_fes_i" style="color: #2e7d32; margin-top: 5px; display: block;"></span>
+                    </div>
+                </div>
+
+                <!-- AVQ - ÉCHELLE DE KATZ -->
+                <div class="test-section">
+                    <h3>🏠 AVQ - Activités de Vie Quotidienne (Katz)</h3>
+                    <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">Évaluation de l'autonomie dans les activités du quotidien</p>
+                    <div class="patient-input-toggle">
+                        <label><input type="checkbox" id="avq_rempli_patient" value="oui"> 📱 Réponses renseignées directement par le patient</label>
+                        <span>Tu peux laisser le patient répondre à cette partie avant la séance.</span>
+                    </div>
+                    <button type="button" class="btn-secondary" onclick="activerModePatientAVQ()">📱 Ouvrir le mode patient AVQ</button>
+
+                    <div style="background: white; padding: 15px; border-radius: 6px;">
+                        <div class="form-group">
+                            <label>👤 Toilette (se laver, se peigner):</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="katz_toilette" value="1"> Indépendant</label>
+                                <label><input type="radio" name="katz_toilette" value="0.5"> Aide partielle</label>
+                                <label><input type="radio" name="katz_toilette" value="0"> Dépendant</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>🚽 Continence:</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="katz_continence" value="1"> Continence complète</label>
+                                <label><input type="radio" name="katz_continence" value="0.5"> Accident occasionnel</label>
+                                <label><input type="radio" name="katz_continence" value="0"> Incontinence</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>🍽️ Alimentation:</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="katz_alimentation" value="1"> Indépendant</label>
+                                <label><input type="radio" name="katz_alimentation" value="0.5"> Aide partielle</label>
+                                <label><input type="radio" name="katz_alimentation" value="0"> Dépendant</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>🛏️ Habillage:</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="katz_habillage" value="1"> Indépendant</label>
+                                <label><input type="radio" name="katz_habillage" value="0.5"> Aide partielle</label>
+                                <label><input type="radio" name="katz_habillage" value="0"> Dépendant</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>🚽 Élimination (toilettes):</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="katz_elimination" value="1"> Indépendant</label>
+                                <label><input type="radio" name="katz_elimination" value="0.5"> Aide partielle</label>
+                                <label><input type="radio" name="katz_elimination" value="0"> Dépendant</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>🛏️ Transfert (lit/chaise):</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="katz_transfert" value="1"> Indépendant</label>
+                                <label><input type="radio" name="katz_transfert" value="0.5"> Aide partielle</label>
+                                <label><input type="radio" name="katz_transfert" value="0"> Dépendant</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="scoring-box" style="margin-top: 15px;">
+                        <strong>Score Katz: <span id="score_katz">--</span>/6</strong>
+                        <br>
+                        <span id="interpretation_katz" style="color: #2e7d32; margin-top: 5px; display: block;"></span>
+                    </div>
+                    <div class="form-group" style="margin-top:15px"><label>📝 Notes - AVQ</label><textarea id="notes_avq" placeholder="Aides humaines ou techniques, environnement, ce que le patient fait réellement…"></textarea></div>
+                </div>
+
+                <!-- QUALITÉ DU SOMMEIL -->
+                <div class="test-section">
+                    <h3>😴 Qualité du Sommeil</h3>
+
+                    <div style="background: white; padding: 15px; border-radius: 6px;">
+                        <div class="form-group">
+                            <label>Heure habituelle d'endormissement:</label>
+                            <input type="time" id="sommeil_heure_coucher">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Heure d'réveil habituelle:</label>
+                            <input type="time" id="sommeil_heure_reveil">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Durée moyenne de sommeil par nuit (heures):</label>
+                            <input type="number" id="sommeil_duree" min="0" max="24" step="0.5" placeholder="Ex: 7">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Qualité du sommeil (0-10):</label>
+                            <div class="slider-group">
+                                <input type="range" id="sommeil_qualite" min="0" max="10" value="5" oninput="updateSlider('sommeil_qualite')">
+                                <span class="slider-value" id="sommeil_qualiteValue">5</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Fréquence des réveils nocturnes:</label>
+                            <select id="sommeil_reveils">
+                                <option value="0">Aucun réveil</option>
+                                <option value="1">1 à 2 réveils</option>
+                                <option value="2">3 à 5 réveils</option>
+                                <option value="3">Plus de 5 réveils</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Problèmes de sommeil fréquents:</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" name="sommeil_problemes" value="insomnie"> Insomnie / Difficultés d'endormissement</label>
+                                <label><input type="checkbox" name="sommeil_problemes" value="apnee"> Apnée du sommeil / Ronflements</label>
+                                <label><input type="checkbox" name="sommeil_problemes" value="nycturie"> Nycturie (réveils pour uriner)</label>
+                                <label><input type="checkbox" name="sommeil_problemes" value="cauchemars"> Cauchemars / Sueurs nocturnes</label>
+                                <label><input type="checkbox" name="sommeil_problemes" value="autre"> Autre</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Utilise des médicaments pour dormir:</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="sommeil_medoc" value="non"> Non</label>
+                                <label><input type="radio" name="sommeil_medoc" value="oui"> Oui</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="sommeil_medoc_details" style="display: none;">
+                            <label>Lesquels:</label>
+                            <textarea id="sommeil_medoc_liste" placeholder="Listez les médicaments..."></textarea>
+                        </div>
+                    </div>
+
+                    <script>
+                        document.querySelectorAll('input[name="sommeil_medoc"]').forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                document.getElementById('sommeil_medoc_details').style.display = 
+                                    this.value === 'oui' ? 'block' : 'none';
+                            });
+                        });
+                    </script>
+                </div>
+
+                <!-- ÉVALUATION DE L'ALIMENTATION -->
+                <div class="test-section">
+                    <h3>🍎 Évaluation de l'Alimentation</h3>
+
+                    <div style="background: white; padding: 15px; border-radius: 6px;">
+                        <div class="form-group">
+                            <label>Poids actuel (kg):</label>
+                            <input type="number" id="nutrition_poids" min="0" step="0.1" placeholder="Ex: 75.5" onchange="calculerIMC()">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Taille (cm):</label>
+                            <input type="number" id="nutrition_taille" min="0" step="0.1" placeholder="Ex: 175" onchange="calculerIMC()">
+                        </div>
+
+                        <div class="scoring-box" style="margin-bottom: 15px;">
+                            <strong>IMC: <span id="nutrition_imc">--</span> kg/m²</strong>
+                            <br>
+                            <span id="nutrition_imc_interpretation" style="color: #2e7d32; margin-top: 5px; display: block;"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Variation de poids (derniers 6 mois):</label>
+                            <select id="nutrition_variation">
+                                <option value="stable">Poids stable</option>
+                                <option value="perte_legere">Perte légère (1-5 kg)</option>
+                                <option value="perte_importante">Perte importante (> 5 kg)</option>
+                                <option value="gain">Gain de poids</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Appétit:</label>
+                            <select id="nutrition_appetit">
+                                <option value="bon">Bon</option>
+                                <option value="normal">Normal</option>
+                                <option value="reduit">Réduit</option>
+                                <option value="tres_reduit">Très réduit</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nombre de repas par jour:</label>
+                            <input type="number" id="nutrition_repas" min="1" max="6" placeholder="Ex: 3">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Difficultés de mastication/déglutition:</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="nutrition_difficulte" value="non"> Non</label>
+                                <label><input type="radio" name="nutrition_difficulte" value="legere"> Légère</label>
+                                <label><input type="radio" name="nutrition_difficulte" value="importante"> Importante</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Consommation hydrique (verres d'eau par jour):</label>
+                            <input type="number" id="nutrition_hydratation" min="0" max="20" placeholder="Ex: 8">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Régimes alimentaires/Restrictions:</label>
+                            <textarea id="nutrition_restrictions" placeholder="Diabète, allergies, végétarien, etc."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Suppléments nutritionnels utilisés:</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" name="nutrition_supplements" value="vitamines"> Vitamines</label>
+                                <label><input type="checkbox" name="nutrition_supplements" value="mineraux"> Minéraux</label>
+                                <label><input type="checkbox" name="nutrition_supplements" value="proteines"> Protéines</label>
+                                <label><input type="checkbox" name="nutrition_supplements" value="omega3"> Oméga-3</label>
+                                <label><input type="checkbox" name="nutrition_supplements" value="autre"> Autre</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Problèmes gastro-intestinaux:</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" name="nutrition_problemes" value="constipation"> Constipation</label>
+                                <label><input type="checkbox" name="nutrition_problemes" value="diarrhee"> Diarrhée</label>
+                                <label><input type="checkbox" name="nutrition_problemes" value="nausees"> Nausées</label>
+                                <label><input type="checkbox" name="nutrition_problemes" value="ballonnements"> Ballonnements</label>
+                                <label><input type="checkbox" name="nutrition_problemes" value="reflux"> Reflux gastrique</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Observations nutritionnelles:</label>
+                            <textarea id="nutrition_observations" placeholder="Notes supplémentaires..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RÉSUMÉ ARAIGNÉE -->
+                <div class="test-section">
+                    <h3>📊 Résumé Visuel - Diagramme Araignée</h3>
+                    <div class="chart-container">
+                        <canvas id="geriatrieChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="test-section bilan-projet" style="margin-top:20px;">
+                    <h3>🎯 Projet de prise en charge</h3>
+                    <div class="form-group">
+                        <label>Objectifs retenus avec le patient:</label>
+                        <textarea id="objectifs_retenus" placeholder="Objectifs fonctionnels ou SMART convenus avec le patient..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>🛠️ Mise en place des objectifs / plan d'action:</label>
+                        <textarea id="mise_en_place_objectifs" placeholder="Exercices, fréquence, conseils, aides techniques, éducation..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>📝 Conclusion du bilan:</label>
+                        <textarea id="conclusion_bilan" placeholder="Synthèse clinique, limitations, points forts et priorités de prise en charge..."></textarea>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="sauvegarderBilanGeriatrie()">💾 Enregistrer le Bilan</button>
+                    <button class="btn-secondary" onclick="telechargerBilanPDF('print')">📄 PDF (impression)</button>
+                    <button class="btn-secondary" onclick="telechargerBilanPDF()">📥 PDF direct</button>
+                </div>
+
+                <div class="test-section" id="sectionEnvoi" data-pdf-skip style="margin-top:20px;">
+                    <h3>📤 Terminer et envoyer le bilan</h3>
+                    <div class="button-group" style="margin-bottom:15px;">
+                        <button class="btn-primary" onclick="telechargerBilanPDF('print')">📄 Générer le PDF</button>
+                    </div>
+                    <h4>✉️ Envoyer au médecin</h4>
+                    <p style="color:#666;font-size:.85em;margin:6px 0 12px">Pour des données de santé, privilégiez une messagerie sécurisée (MSSanté, Apicrypt). Les réglages ci-dessous sont mémorisés sur cet appareil.</p>
+                    <div class="form-group"><label>Nom du médecin (ex : Martin)</label><input type="text" data-m="nom" oninput="sauverMedecin()"></div>
+                    <div class="form-group"><label>E-mail du médecin</label><input type="email" data-m="email" inputmode="email" autocomplete="off" oninput="sauverMedecin()"></div>
+                    <div class="form-group"><label>Votre nom (signature)</label><input type="text" data-m="kine" oninput="sauverMedecin()"></div>
+                    <div class="form-group"><label>Message (les mots entre accolades sont remplacés automatiquement)</label><textarea data-m="msg" rows="8" oninput="sauverMedecin()"></textarea></div>
+                    <div class="button-group">
+                        <button id="btnPartagePdf" class="btn-primary" onclick="envoyerPartage()">✉️ Envoyer avec le PDF</button>
+                        <button class="btn-secondary" onclick="envoyerMailto()">✉️ Ouvrir mon e-mail (message prêt)</button>
+                        <button class="btn-secondary" onclick="retablirMessage()">↩️ Message type</button>
+                    </div>
+                    <p id="envoiStatut" style="margin-top:10px;font-size:.9em;color:#333"></p>
+                    <p style="color:#666;font-size:.8em;margin-top:8px">« Envoyer avec le PDF » prépare le PDF, puis un second appui ouvre le partage de votre téléphone (choisissez votre application e-mail). L'adresse du médecin est alors copiée : collez-la dans le champ « À ». « Ouvrir mon e-mail » remplit l'adresse, l'objet et le message, mais le PDF doit être joint à la main.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: SUIVI -->
+        <div id="suivi" class="section">
+            <h2 class="card-title">📊 Suivi de l'Évolution</h2>
+            <div class="form-group">
+                <label>Sélectionner un patient:</label>
+                <select id="selectPatientSuivi" onchange="chargerHistoriqueSuivi()">
+                    <option value="">Choisir un patient...</option>
+                </select>
+            </div>
+
+            <div id="historiqueSuivi"></div>
+
+            <div id="formulaireSuivi" style="display: none;">
+                <h3 style="margin-top: 30px; margin-bottom: 20px;">Ajouter une Nouvelle Évaluation Gériatrique</h3>
+                <div class="form-group">
+                    <label>Date de la séance:</label>
+                    <input type="date" id="dateSuivi">
+                </div>
+
+                <!-- Intégrer les mêmes tests ici pour le suivi -->
+                <p style="color: #666; font-style: italic;">Les tests seront disponibles dans le développement complet...</p>
+
+                <button class="btn-primary" onclick="ajouterSuiviGeriatrie()">➕ Enregistrer l'Évaluation</button>
+            </div>
+        </div>
+
+        <!-- SECTION: EXERCICES -->
+        <div id="exercices" class="section">
+            <h2 class="card-title">🏋️ Gestion des Exercices</h2>
+            <div class="form-group">
+                <label>Sélectionner un patient:</label>
+                <select id="selectPatientExercices" onchange="chargerExercicesPatient()">
+                    <option value="">Choisir un patient...</option>
+                </select>
+            </div>
+
+            <div id="formAjoutExercice" style="display: none;">
+                <h3 style="margin: 20px 0;">Ajouter un Nouvel Exercice</h3>
+                <div class="form-group">
+                    <label>Nom de l'exercice:</label>
+                    <input type="text" id="nomExercice" placeholder="Ex: Flexion de genou">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre de séries:</label>
+                        <input type="number" id="series" min="1" value="3">
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de répétitions:</label>
+                        <input type="number" id="repetitions" min="1" value="10">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fréquence par semaine:</label>
+                        <input type="number" id="frequence" min="1" max="7" value="3">
+                    </div>
+                    <div class="form-group">
+                        <label>Durée (en secondes):</label>
+                        <input type="number" id="duree" min="1" value="30">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description/Instructions:</label>
+                    <textarea id="descriptionExercice" placeholder="Décrivez comment faire l'exercice..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>🎥 Lien vidéo de démonstration:</label>
+                    <input type="url" id="videoExercice" placeholder="https://www.youtube.com/watch?v=...">
+                </div>
+                <button class="btn-primary" onclick="ajouterExercice()">➕ Ajouter l'Exercice</button>
+            </div>
+
+            <div id="listeExercicesContainer"></div>
+            <div id="lienProgrammeExercices" style="margin-top:20px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // ===== STOCKAGE LOCAL SÉCURISÉ (try/catch) =====
+        const LS = {
+            get(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } },
+            set(k,v){ try { window.localStorage.setItem(k,v); return true; } catch(e){ return false; } },
+            remove(k){ try { window.localStorage.removeItem(k); } catch(e){} }
+        };
+        function lireListe(k){ try { const v = JSON.parse(LS.get(k)); return Array.isArray(v) ? v : []; } catch(e){ return []; } }
+
+        // ===== DONNÉES =====
+        let patients = lireListe('patients');
+        let bilansGeriatrie = lireListe('bilansGeriatrie');
+        let suivis = lireListe('suivis');
+        let exercices = lireListe('exercices');
+        let chartInstance = null;
+
+        // ===== FONCTIONS UTILITAIRES =====
+        function generateUniqueId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function sauvegarderDonnees() {
+            LS.set('patients', JSON.stringify(patients));
+            LS.set('bilansGeriatrie', JSON.stringify(bilansGeriatrie));
+            LS.set('suivis', JSON.stringify(suivis));
+            LS.set('exercices', JSON.stringify(exercices));
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+
+            if (sectionId === 'mes-patients') afficherListePatientsTab();
+            if (sectionId === 'bilan-geriatrie') remplirSelectPatientsGeriatrie();
+            if (sectionId === 'suivi') remplirSelectPatientsSuivi();
+            if (sectionId === 'exercices') remplirSelectPatientsExercices();
+        }
+
+        function updateSlider(elementId) {
+            const slider = document.getElementById(elementId);
+            const value = slider.value;
+            document.getElementById(elementId + 'Value').textContent = value;
+        }
+
+        // ===== GESTION PATIENTS =====
+        function creerPatient() {
+            const nom = document.getElementById('nom').value;
+            const email = document.getElementById('email').value;
+            const telephone = document.getElementById('telephone').value;
+            const dateNaissance = document.getElementById('dateNaissance').value;
+            const genre = document.getElementById('genre').value;
+            const motif = document.getElementById('motif').value;
+            const antecedents = document.getElementById('antecedents').value;
+            const attentesPatient = document.getElementById('attentesPatient').value;
+            const objectifsPatient = document.getElementById('objectifsPatient').value;
+
+            if (!nom || !email) {
+                alert('Veuillez remplir au moins le nom et l\'email');
+                return;
+            }
+
+            const patient = {
+                id: generateUniqueId(),
+                nom,
+                email,
+                telephone,
+                dateNaissance,
+                genre,
+                motif,
+                antecedents,
+                attentesPatient,
+                objectifsPatient,
+                dateCreation: new Date().toISOString(),
+                lienUnique: `patient-${generateUniqueId()}`
+            };
+
+            patients.push(patient);
+            sauvegarderDonnees();
+
+            if (new URLSearchParams(window.location.search).get('patientForm')) {
+                alert('✅ Informations enregistrées sur cet appareil uniquement. Elles ne sont pas encore transmises à votre kiné : merci de les lui communiquer directement.');
+            } else {
+                alert('✅ Patient créé.');
+            }
+
+            // Réinitialiser
+            document.getElementById('nom').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('telephone').value = '';
+            document.getElementById('dateNaissance').value = '';
+            document.getElementById('genre').value = '';
+            document.getElementById('motif').value = '';
+            document.getElementById('antecedents').value = '';
+            document.getElementById('attentesPatient').value = '';
+            document.getElementById('objectifsPatient').value = '';
+            document.getElementById('lienPatientContainer').innerHTML = '';
+
+            remplirSelectPatientsGeriatrie();
+            remplirSelectPatientsSuivi();
+            remplirSelectPatientsExercices();
+        }
+
+        function afficherListePatientsTab() {
+            const container = document.getElementById('listePatientsContainer');
+            container.innerHTML = '';
+
+            if (patients.length === 0) {
+                container.innerHTML = '<p style="color: #999;">Aucun patient enregistré.</p>';
+                return;
+            }
+
+            patients.forEach(patient => {
+                const card = document.createElement('div');
+                card.className = 'patient-card';
+
+                const bilanPatient = bilansGeriatrie.find(b => b.patientId === patient.id);
+                const statut = bilanPatient ? '✅ Bilan effectué' : '⚠️ En attente de bilan';
+
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <h3>${patient.nom}</h3>
+                            <div class="patient-info">
+                                <div><strong>Email:</strong> ${patient.email}</div>
+                                <div><strong>Téléphone:</strong> ${patient.telephone || 'N/A'}</div>
+                                <div><strong>Motif:</strong> ${patient.motif || 'N/A'}</div>
+                                <div><strong>Statut:</strong> ${statut}</div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <strong>🔗 Lien unique du patient:</strong>
+                                <div class="unique-link">${window.location.origin}?patient=${patient.lienUnique}</div>
+                            </div>
+                        </div>
+                        <button class="btn-danger" onclick="supprimerPatient('${patient.id}')">🗑️ Supprimer</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function supprimerPatient(patientId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce patient et tous ses données?')) {
+                patients = patients.filter(p => p.id !== patientId);
+                bilansGeriatrie = bilansGeriatrie.filter(b => b.patientId !== patientId);
+                suivis = suivis.filter(s => s.patientId !== patientId);
+                exercices = exercices.filter(e => e.patientId !== patientId);
+                sauvegarderDonnees();
+                afficherListePatientsTab();
+            }
+        }
+
+        // ===== BILAN GÉRIATRIE =====
+        function remplirSelectPatientsGeriatrie() {
+            const select = document.getElementById('selectPatientGeriatrie');
+            select.innerHTML = '<option value="">Choisir un patient...</option>';
+            patients.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = p.nom;
+                select.appendChild(option);
+            });
+        }
+
+        function chargerPatientPourGeriatrie() {
+            const patientId = document.getElementById('selectPatientGeriatrie').value;
+            if (!patientId) {
+                document.getElementById('bilanGeriatrieForm').style.display = 'none';
+                document.getElementById('bilanActionsMobile').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('bilanGeriatrieForm').style.display = 'block';
+            document.getElementById('bilanActionsMobile').style.display = 'flex';
+
+            bilanEnCoursId = null;
+
+            // Priorité au brouillon local non sauvegardé.
+            if (chargerBrouillonBilan(patientId)) {
+                return;
+            }
+
+            const dernier = getDernierBilan(patientId);
+            if (dernier && dernier.formData) {
+                bilanEnCoursId = dernier.id;
+                setBilanControls(dernier.formData);
+                document.getElementById('bilanModeLabel').textContent =
+                    '✏️ Dernier bilan chargé — ' +
+                    new Date(dernier.date).toLocaleDateString('fr-FR');
+            } else {
+                nouveauBilan();
+            }
+
+            setTimeout(() => {
+                calculerTinettiTotal();
+                mettreAJourGraphique();
+            }, 100);
+        }
+
+        // ===== CALCULS TINETTI =====
+        function calculerTinettiTotal() {
+            const el = document.getElementById('tinetti_score_total'), box = document.getElementById('tinetti_interpretation');
+            const v = parseInt(el.value, 10);
+            if (el.value === '' || isNaN(v) || v < 0 || v > 28) {
+                box.innerHTML = el.value === '' ? 'Score à renseigner' : '⚠️ Score invalide : saisissez un entier de 0 à 28.';
+                mettreAJourGraphique();
+                return;
+            }
+            let h;
+            if (v <= 18) h = '🔴 <strong>Risque de chute élevé</strong> (≤ 18/28). Évaluation multifactorielle des chutes (médicaments, vision, environnement), travail ciblé de l’équilibre et de la marche, aides techniques à discuter, ré-évaluation rapprochée.';
+            else if (v <= 23) h = '🟠 <strong>Risque de chute modéré</strong> (19 à 23/28). Prévention ciblée : entraînement de l’équilibre et du renforcement, sécurisation du domicile.';
+            else h = '🟢 <strong>Risque de chute faible</strong> aux seuils classiques (≥ 24/28). Prévention générale et ré-évaluation régulière.' + (v <= 26 ? '<br>🟡 À surveiller : un score ≤ 26/28 reste associé à un risque de chute accru dans les études de dépistage.' : '');
+            box.innerHTML = `<strong>${v}/28</strong> - ${h}<br><small>Seuils usuels du Tinetti (POMA) : ≤ 18 élevé, 19-23 modéré, ≥ 24 faible (certaines sources placent le seuil « faible » à ≥ 25). Score ≤ 26 : risque de chute environ doublé (Raîche et al., Lancet 2000, d’après Physiopedia). Repère indicatif, à intégrer au bilan global (antécédents de chute, TUG, peur de chuter).</small>`;
+            mettreAJourGraphique();
+        }
+
+        function calculerScoreLeverChaise() {
+            const temps = parseFloat(document.getElementById('test_lever_chaise_temps').value);
+            if (isNaN(temps)) {
+                document.getElementById('score_lever_chaise').innerHTML = 'Score: À remplir';
+                return;
+            }
+
+            let interpretation = '';
+            if (temps < 12) interpretation = '✅ Normal - Pas de risque';
+            else if (temps < 15) interpretation = '⚠️ Ralenti - Risque modéré';
+            else interpretation = '🔴 Très ralenti - Risque important';
+
+            document.getElementById('score_lever_chaise').innerHTML = `
+                <strong>${temps}s</strong> - ${interpretation}
+            `;
+            mettreAJourGraphique();
+        }
+
+        function calculerScoreTUG() {
+            const temps = parseFloat(document.getElementById('test_tug_temps').value);
+            if (isNaN(temps)) {
+                document.getElementById('score_tug').innerHTML = 'Score: À remplir';
+                return;
+            }
+
+            let interpretation = '';
+            if (temps < 12) interpretation = '✅ Normal - Pas de risque';
+            else if (temps < 14) interpretation = '🟡 Limite - Risque faible';
+            else interpretation = '🔴 Anormal - Risque de chute important';
+
+            document.getElementById('score_tug').innerHTML = `
+                <strong>${temps}s</strong> - ${interpretation}
+            `;
+            mettreAJourGraphique();
+        }
+
+        function calculerVitesseMarche() {
+            const temps = parseFloat(document.getElementById('vitesse_marche_temps').value);
+            if (isNaN(temps) || temps === 0) {
+                document.getElementById('vitesse_marche_result').value = '';
+                return;
+            }
+
+            const vitesse = (4 / temps).toFixed(2);
+            document.getElementById('vitesse_marche_result').value = vitesse + ' m/s';
+
+            let interpretation = '';
+            if (vitesse >= 1.2) interpretation = '✅ Normal (≥ 1.2 m/s)';
+            else if (vitesse >= 1.0) interpretation = '🟡 Lent (1.0-1.2 m/s)';
+            else interpretation = '🔴 Très lent (< 1.0 m/s)';
+
+            document.getElementById('score_vitesse_marche').innerHTML = `
+                <strong>${vitesse} m/s</strong> - ${interpretation}
+            `;
+            mettreAJourGraphique();
+        }
+
+        function convertirEquilibreToScore() {
+            const jambeG = parseFloat(document.getElementById('equilibre_jambe_gauche').value) || 0;
+            const jambeD = parseFloat(document.getElementById('equilibre_jambe_droite').value) || 0;
+
+            let scoreG = 0, scoreD = 0;
+
+            if (jambeG > 30) scoreG = 10;
+            else if (jambeG > 20) scoreG = 8;
+            else if (jambeG > 10) scoreG = 6;
+            else if (jambeG > 5) scoreG = 3;
+            else scoreG = 0;
+
+            if (jambeD > 30) scoreD = 10;
+            else if (jambeD > 20) scoreD = 8;
+            else if (jambeD > 10) scoreD = 6;
+            else if (jambeD > 5) scoreD = 3;
+            else scoreD = 0;
+
+            const scoreMoyen = ((scoreG + scoreD) / 2).toFixed(0);
+
+            document.getElementById('score_equilibre').innerHTML = `
+                <strong>Jambe gauche:</strong> ${jambeG}s (score ${scoreG}/10)<br>
+                <strong>Jambe droite:</strong> ${jambeD}s (score ${scoreD}/10)<br>
+                <strong>Score moyen: ${scoreMoyen}/10</strong>
+            `;
+            mettreAJourGraphique();
+        }
+
+        function calculerGripMoyen() {
+            const v = id => parseFloat(document.getElementById(id).value) || 0;
+            const D = [v('grip_droite_1'), v('grip_droite_2')].filter(x => x > 0);
+            const G = [v('grip_gauche_1'), v('grip_gauche_2')].filter(x => x > 0);
+            const moy = a => a.length ? (a.reduce((t, x) => t + x, 0) / a.length).toFixed(1) : '--';
+            document.getElementById('grip_moyenne_droite').textContent = moy(D);
+            document.getElementById('grip_moyenne_gauche').textContent = moy(G);
+            const best = Math.max(0, ...D, ...G);
+            document.getElementById('grip_best').textContent = best ? best : '--';
+            interpreterGrip(best);
+            mettreAJourGraphique();
+        }
+
+        // Repères : EWGSOP2 2019 (< 27 kg H / < 16 kg F) ; ELSI-Brazil (< 36 H / < 23 F, risque de mortalité) ; PURE, Lancet 2015 (HR 1,16 par -5 kg)
+        function interpreterGrip(best) {
+            const box = document.getElementById('grip_interpretation');
+            if (!best) { box.innerHTML = ''; return; }
+            const p = patients.find(x => x.id === document.getElementById('selectPatientGeriatrie').value);
+            const g = ((p && p.genre) || '').toLowerCase();
+            const seuil = g === 'homme' ? 27 : g === 'femme' ? 16 : null;
+            const haut = g === 'homme' ? 36 : g === 'femme' ? 23 : null;
+            let h = '';
+            if (seuil === null) h += '⚠️ Sexe non renseigné sur la fiche patient. Seuils EWGSOP2 : &lt; 27 kg (hommes), &lt; 16 kg (femmes).<br>';
+            else if (best < seuil) {
+                const plus = Math.round((Math.pow(1.16, (seuil - best) / 5) - 1) * 100);
+                h += `🔴 <strong>Force de préhension basse</strong> (seuil ${seuil} kg) : sarcopénie probable (EWGSOP2) → compléter par la masse musculaire et la performance physique.<br>Écart de ${(seuil - best).toFixed(1)} kg sous le seuil : extrapolation indicative des données PURE ≈ +${plus} % de risque de mortalité toutes causes par rapport à une personne au seuil.<br>`;
+            } else if (best < haut) {
+                h += `🟡 Au-dessus du seuil de sarcopénie probable (${seuil} kg) mais sous ${haut} kg : seuil plus exigeant associé au risque de mortalité (cohorte ELSI-Brazil) → surveiller et entretenir la force.<br>`;
+            } else h += `✅ Force de préhension satisfaisante (≥ ${haut} kg).<br>`;
+            h += '<small>Repères : chaque baisse de 5 kg ↔ risque de mortalité toutes causes ×1,16, cardiovasculaire ×1,17, AVC ×1,09, infarctus ×1,07 (étude PURE, Lancet 2015). Association statistique de population, pas un pronostic individuel.</small>';
+            box.innerHTML = h;
+        }
+
+        // ===== CALCUL FES-I =====
+        function calculerFESI() {
+            let score = 0;
+            for (let i = 1; i <= 7; i++) {
+                const selected = document.querySelector(`input[name="fes_${i}"]:checked`);
+                if (selected) score += parseInt(selected.value);
+            }
+
+            let interpretation = '';
+            if (score <= 9) interpretation = '✅ Pas de peur / Bonne confiance';
+            else if (score <= 12) interpretation = '🟡 Peur légère';
+            else if (score <= 18) interpretation = '🟠 Peur modérée';
+            else interpretation = '🔴 Peur importante';
+
+            document.getElementById('score_fes_i').textContent = score;
+            document.getElementById('interpretation_fes_i').innerHTML = `${score}/28 - ${interpretation}`;
+
+            mettreAJourGraphique();
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target.name && e.target.name.startsWith('fes_')) {
+                calculerFESI();
+            }
+        });
+
+        // ===== CALCUL KATZ =====
+        function calculerKatz() {
+            let score = 0;
+            const items = ['toilette', 'continence', 'alimentation', 'habillage', 'elimination', 'transfert'];
+            
+            items.forEach(item => {
+                const selected = document.querySelector(`input[name="katz_${item}"]:checked`);
+                if (selected) score += parseFloat(selected.value);
+            });
+
+            let interpretation = '';
+            if (score === 6) interpretation = '✅ Complètement indépendant';
+            else if (score >= 4.5) interpretation = '🟡 Légèrement dépendant';
+            else if (score >= 2.5) interpretation = '🟠 Modérément dépendant';
+            else interpretation = '🔴 Très dépendant';
+
+            document.getElementById('score_katz').textContent = score.toFixed(1);
+            document.getElementById('interpretation_katz').innerHTML = `${score.toFixed(1)}/6 - ${interpretation}`;
+
+            mettreAJourGraphique();
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target.name && e.target.name.startsWith('katz_')) {
+                calculerKatz();
+            }
+        });
+
+        // ===== CALCUL IMC =====
+        function calculerIMC() {
+            const poids = parseFloat(document.getElementById('nutrition_poids').value);
+            const taille = parseFloat(document.getElementById('nutrition_taille').value);
+
+            if (!poids || !taille) return;
+
+            const tailleM = taille / 100;
+            const imc = (poids / (tailleM * tailleM)).toFixed(1);
+
+            document.getElementById('nutrition_imc').textContent = imc;
+
+            let interpretation = '';
+            if (imc < 18.5) interpretation = '⚠️ Insuffisance pondérale';
+            else if (imc < 25) interpretation = '✅ Poids normal';
+            else if (imc < 30) interpretation = '🟡 Surpoids';
+            else if (imc < 35) interpretation = '🟠 Obésité classe I';
+            else interpretation = '🔴 Obésité classe II';
+
+            document.getElementById('nutrition_imc_interpretation').innerHTML = interpretation;
+            mettreAJourGraphique();
+        }
+
+        // ===== GRAPHIQUE ARAIGNÉE =====
+        function mettreAJourGraphique() {
+            // Récupérer les scores
+            const tinetti = (parseInt(document.getElementById('tinetti_score_total').value, 10) || 0) / 28 * 10;
+            
+            const temps_lever = parseFloat(document.getElementById('test_lever_chaise_temps').value) || 0;
+            const score_lever = temps_lever < 12 ? 10 : (temps_lever < 15 ? 7 : 3);
+
+            const temps_tug = parseFloat(document.getElementById('test_tug_temps').value) || 0;
+            const score_tug = temps_tug < 12 ? 10 : (temps_tug < 14 ? 7 : 3);
+
+            const vitesse = parseFloat(document.getElementById('vitesse_marche_result').value) || 0;
+            const score_vitesse = vitesse >= 1.2 ? 10 : (vitesse >= 1.0 ? 7 : 3);
+
+            const grip = parseFloat(document.getElementById('grip_best').textContent) || 0;
+            const score_grip = grip >= 30 ? 10 : (grip >= 20 ? 7 : (grip > 0 ? 3 : 0));
+
+            const fesi = parseInt(document.getElementById('score_fes_i').textContent) || 0;
+            const score_fesi = 10 - (fesi / 28 * 10);
+
+            const katz = parseFloat(document.getElementById('score_katz').textContent) || 0;
+            const score_katz = (katz / 6 * 10);
+
+            const force_ms = parseInt(document.getElementById('force_ms').value) || 5;
+            const force_mi = parseInt(document.getElementById('force_mi').value) || 5;
+
+            const sommeil = parseInt(document.getElementById('sommeil_qualite').value) || 5;
+
+            const imc = parseFloat(document.getElementById('nutrition_imc').textContent) || 0;
+            let score_imc = 0;
+            if (imc === 0) score_imc = 5;
+            else if (imc >= 18.5 && imc < 25) score_imc = 10;
+            else if (imc >= 25 && imc < 30) score_imc = 7;
+            else score_imc = 3;
+
+            const ctx = document.getElementById('geriatrieChart').getContext('2d');
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: [
+                        'Équilibre\n(Tinetti)',
+                        'Lever Chaise',
+                        'TUG',
+                        'Vitesse\nMarche',
+                        'Préhension\n(Grip)',
+                        'Confiance\n(FES-I)',
+                        'Autonomie\n(Katz)',
+                        'Force\nSupérieure',
+                        'Force\nInférieure',
+                        'Qualité\nSommeil',
+                        'IMC /\nNutrition'
+                    ],
+                    datasets: [{
+                        label: 'Profil Gériatrique',
+                        data: [
+                            tinetti,
+                            score_lever,
+                            score_tug,
+                            score_vitesse,
+                            score_grip,
+                            score_fesi,
+                            score_katz,
+                            force_ms,
+                            force_mi,
+                            sommeil,
+                            score_imc
+                        ],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.15)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 10,
+                            ticks: {
+                                stepSize: 2,
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.r.toFixed(1) + '/10';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ===== SAUVEGARDE / MODIFICATION / PDF =====
+        let bilanEnCoursId = null;
+
+        function getBilanControls() {
+            const form = document.getElementById('bilanGeriatrieForm');
+            const data = {};
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+                if (!el.id && !el.name) return;
+                const key = el.name || el.id;
+                if (el.type === 'radio') {
+                    if (el.checked) data[key] = el.value;
+                } else if (el.type === 'checkbox') {
+                    if (!data[key]) data[key] = [];
+                    if (el.checked) data[key].push(el.value);
+                } else {
+                    data[key] = el.value;
+                }
+            });
+            return data;
+        }
+
+        function setBilanControls(data) {
+            const form = document.getElementById('bilanGeriatrieForm');
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+                if (!el.name && !el.id) return;
+                const key = el.name || el.id;
+                if (!Object.prototype.hasOwnProperty.call(data, key)) {
+                    if (el.type === 'radio' || el.type === 'checkbox') el.checked = el.defaultChecked;
+                    else if (el.tagName === 'SELECT') Array.from(el.options).forEach(o => { o.selected = o.defaultSelected; });
+                    else el.value = el.defaultValue;
+                    return;
+                }
+
+                const value = data[key];
+                if (el.type === 'radio') {
+                    el.checked = String(value) === String(el.value);
+                } else if (el.type === 'checkbox') {
+                    el.checked = Array.isArray(value) && value.includes(el.value);
+                } else {
+                    el.value = value ?? '';
+                }
+            });
+
+            zoneSel = null; zoneArt = null; renderDouleur(); renderBodyScan(); renderArtic(); invaliderPdf();
+            // Recalculer tous les résultats dérivés
+            calculerTinettiTotal();
+            calculerScoreLeverChaise();
+            calculerScoreTUG();
+            calculerVitesseMarche();
+            convertirEquilibreToScore();
+            calculerGripMoyen();
+            calculerFESI();
+            calculerKatz();
+            calculerIMC();
+            updateSlider('force_ms');
+            updateSlider('force_mi');
+            updateSlider('sommeil_qualite');
+
+            const medocOui = document.querySelector('input[name="sommeil_medoc"][value="oui"]');
+            document.getElementById('sommeil_medoc_details').style.display =
+                medocOui && medocOui.checked ? 'block' : 'none';
+
+            mettreAJourGraphique();
+        }
+
+        function sauvegarderBrouillonBilan() {
+            const patientId = document.getElementById('selectPatientGeriatrie').value;
+            if (!patientId || document.getElementById('bilanGeriatrieForm').style.display === 'none') return;
+
+            const brouillon = {
+                patientId,
+                savedAt: new Date().toISOString(),
+                data: getBilanControls()
+            };
+            LS.set('bilanBrouillon_' + patientId, JSON.stringify(brouillon));
+        }
+
+        function chargerBrouillonBilan(patientId) {
+            const raw = LS.get('bilanBrouillon_' + patientId);
+            if (!raw) return false;
+            try {
+                const brouillon = JSON.parse(raw);
+                if (brouillon.patientId !== patientId) return false;
+                setBilanControls(brouillon.data);
+                document.getElementById('bilanModeLabel').textContent = '📝 Brouillon local';
+                return true;
+            } catch (e) {
+                console.error('Brouillon illisible', e);
+                return false;
+            }
+        }
+
+        function getDernierBilan(patientId) {
+            const bilans = bilansGeriatrie
+                .filter(b => b.patientId === patientId)
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+            return bilans[0] || null;
+        }
+
+        function nouveauBilan() {
+            bilanEnCoursId = null;
+            // #bilanGeriatrieForm est un <div> (pas un <form>) : form.reset() n'existait pas.
+            // setBilanControls({}) remet tous les champs à leurs valeurs par défaut et recalcule les scores.
+            setBilanControls({});
+            document.getElementById('bilanModeLabel').textContent = '🆕 Nouveau bilan';
+            sauvegarderBrouillonBilan();
+        }
+
+        function chargerDernierBilan() {
+            const patientId = document.getElementById('selectPatientGeriatrie').value;
+            if (!patientId) return;
+
+            const bilan = getDernierBilan(patientId);
+            if (!bilan) {
+                alert('Aucun bilan enregistré pour ce patient.');
+                return;
+            }
+
+            bilanEnCoursId = bilan.id;
+            setBilanControls(bilan.formData || {});
+            LS.remove('bilanBrouillon_' + patientId);
+            document.getElementById('bilanModeLabel').textContent =
+                '✏️ Modification du bilan du ' +
+                new Date(bilan.date).toLocaleDateString('fr-FR');
+        }
+
+        function construireBilanDepuisForm(patientId) {
+            const existant = bilanEnCoursId ? bilansGeriatrie.find(b => b.id === bilanEnCoursId) : null;
+            return {
+                id: bilanEnCoursId || generateUniqueId(),
+                patientId,
+                date: existant ? existant.date : new Date().toISOString(),
+                dateModification: new Date().toISOString(),
+                formData: getBilanControls()
+            };
+        }
+
+        function sauvegarderBilanGeriatrie() {
+            const patientId = document.getElementById('selectPatientGeriatrie').value;
+            if (!patientId) {
+                alert('Veuillez sélectionner un patient');
+                return;
+            }
+
+            const bilan = construireBilanDepuisForm(patientId);
+            const index = bilansGeriatrie.findIndex(b => b.id === bilan.id);
+
+            if (index >= 0) {
+                bilansGeriatrie[index] = bilan;
+                alert('✅ Bilan modifié et enregistré.');
+            } else {
+                bilansGeriatrie.push(bilan);
+                alert('✅ Nouveau bilan enregistré.');
+            }
+
+            bilanEnCoursId = bilan.id;
+            LS.remove('bilanBrouillon_' + patientId);
+            sauvegarderDonnees();
+
+            document.getElementById('bilanModeLabel').textContent =
+                '💾 Enregistré le ' + new Date(bilan.date).toLocaleDateString('fr-FR');
+        }
+
+        async function telechargerBilanPDF(mode) {
+            const patientId = document.getElementById('selectPatientGeriatrie').value;
+            if (!patientId) {
+                alert('Veuillez sélectionner un patient avant de générer le PDF.');
+                return;
+            }
+
+            if (!(mode === 'print' && window.self === window.top) && typeof html2pdf === 'undefined') {
+                alert('Le module PDF n’est pas chargé. Vérifiez votre connexion Internet.');
+                return;
+            }
+
+            // Toujours enregistrer l'état actuel avant de générer le PDF.
+            const tempId = bilanEnCoursId;
+            if (!tempId) {
+                const bilan = construireBilanDepuisForm(patientId);
+                bilanEnCoursId = bilan.id;
+                bilansGeriatrie.push(bilan);
+                sauvegarderDonnees();
+            }
+
+            const patient = patients.find(p => p.id === patientId);
+            const source = document.getElementById('bilanGeriatrieForm');
+            const wrapper = document.createElement('div');
+
+            wrapper.style.cssText = `
+                position:absolute;
+                left:-100000px;
+                top:0;
+                width:794px;
+                background:#fff;
+                padding:28px;
+                color:#222;
+                font-family:Arial, sans-serif;
+            `;
+
+            const title = document.createElement('div');
+            title.innerHTML = `
+                <h1 style="font-size:24px;margin:0 0 8px;color:#333;">
+                    Bilan kinésithérapique gériatrique
+                </h1>
+                <div style="font-size:14px;margin-bottom:18px;">
+                    <strong>Patient :</strong> ${escapeHtml(patient ? patient.nom : '')}
+                    &nbsp;&nbsp;|&nbsp;&nbsp;
+                    <strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}
+                </div>
+            `;
+            wrapper.appendChild(title);
+
+            const clone = source.cloneNode(true);
+            clone.style.display = 'block';
+
+            // Les boutons et éléments purement interactifs ne sont pas utiles dans le PDF.
+            clone.querySelectorAll('button').forEach(el => el.remove());
+            clone.querySelectorAll('[data-pdf-skip]').forEach(el => el.remove());
+            clone.querySelectorAll('details.accessoire:not([open])').forEach(el => el.remove());
+
+            // Remplacer les champs par leur valeur lisible.
+            clone.querySelectorAll('input, select, textarea').forEach(el => {
+                let value = '';
+                if (el.type === 'radio' || el.type === 'checkbox') {
+                    if (!el.checked) {
+                        el.remove();
+                        return;
+                    }
+                    value = el.type === 'radio' ? '☑ ' + el.parentElement.textContent.trim()
+                                                : '☑ ' + el.parentElement.textContent.trim();
+                    const span = document.createElement('span');
+                    span.textContent = value;
+                    span.style.fontSize = '12px';
+                    el.replaceWith(span);
+                    return;
+                }
+
+                if (el.tagName === 'SELECT') {
+                    value = el.options[el.selectedIndex]?.text || '';
+                } else {
+                    value = el.value || '';
+                }
+
+                const span = document.createElement('span');
+                span.textContent = value || '—';
+                span.style.cssText = 'display:inline-block; min-width:100px; padding:5px 7px; border:1px solid #ddd; border-radius:4px; background:#fafafa; font-size:12px;';
+                el.replaceWith(span);
+            });
+
+            // Le graphique Chart.js doit être recopié en image.
+            const originalCanvas = document.getElementById('geriatrieChart');
+            const clonedCanvas = clone.querySelector('#geriatrieChart');
+            if (originalCanvas && clonedCanvas) {
+                const img = document.createElement('img');
+                img.src = originalCanvas.toDataURL('image/png', 1);
+                img.style.cssText = 'display:block;width:100%;height:auto;';
+                clonedCanvas.replaceWith(img);
+            }
+
+            wrapper.appendChild(clone);
+            document.body.appendChild(wrapper);
+
+            if (mode === 'print' && window.self === window.top) { lancerImpression(wrapper, patient); return; }
+
+            let resultat = null;
+            try {
+                const filename = 'Bilan_Kine_' +
+                    (patient?.nom || 'Patient').replace(/[^a-z0-9àâäéèêëîïôöùûüç_-]/gi, '_') +
+                    '_' + new Date().toISOString().slice(0,10) + '.pdf';
+
+                await html2pdf().set({
+                    margin: [8, 8, 8, 8],
+                    filename,
+                    image: { type: 'jpeg', quality: 0.95 },
+                    html2canvas: {
+                        scale: Math.max(0.8, Math.min(1.4, Math.sqrt(12e6 / (wrapper.scrollWidth * wrapper.scrollHeight)))),
+                        useCORS: true,
+                        backgroundColor: '#ffffff'
+                    },
+                    jsPDF: {
+                        unit: 'mm',
+                        format: 'a4',
+                        orientation: 'portrait'
+                    },
+                    pagebreak: { mode: ['css', 'legacy'] }
+                }).from(wrapper).outputPdf('blob').then(async blob => {
+                    if (mode === 'blob') { resultat = { blob, filename }; return; }
+                    const ok = await enregistrerFichier(filename, blob);
+                    if (!ok) alert('Le PDF n’a pas été enregistré (téléchargement refusé ou indisponible sur cet appareil).');
+                });
+            } catch (error) {
+                console.error(error);
+                alert('Impossible de générer le PDF : ' + ((error && error.message) || error));
+            } finally {
+                wrapper.remove();
+            }
+            return resultat;
+        }
+
+        // PDF par impression du navigateur : fiable sur téléphone (pas de limite de canvas, texte net, pages découpées proprement)
+        function lancerImpression(wrapper, patient) {
+            const ancien = document.getElementById('zoneImpression');
+            if (ancien) ancien.remove();
+            wrapper.id = 'zoneImpression';
+            wrapper.style.cssText = 'background:#fff;color:#222;font-family:Arial,sans-serif;padding:0;';
+            document.body.classList.add('impression');
+            const ancienTitre = document.title;
+            document.title = 'Bilan_Kine_' + (patient?.nom || 'Patient').replace(/[^a-z0-9àâäéèêëîïôöùûüç_-]/gi, '_') + '_' + new Date().toISOString().slice(0, 10);
+            const fin = () => {
+                wrapper.remove();
+                document.body.classList.remove('impression');
+                document.title = ancienTitre;
+                window.removeEventListener('afterprint', fin);
+            };
+            window.addEventListener('afterprint', fin);
+            setTimeout(() => {
+                try { window.print(); }
+                catch (e) { fin(); alert('Impression impossible : ' + ((e && e.message) || e)); }
+            }, 150);
+        }
+
+        // ===== ENVOI AU MÉDECIN =====
+        const MSG_MEDECIN_DEFAUT = 'Bonjour {medecin},\n\nVeuillez trouver ci-joint le bilan kinésithérapique gériatrique de {patient}, réalisé le {date}.\n\nJe reste à votre disposition pour tout complément d’information.\n\nBien cordialement,\n{kine}';
+        let pdfPret = null;
+        function champMed(k) { return document.querySelector('#sectionEnvoi [data-m="' + k + '"]'); }
+        function lireMedecin() { return { nom: champMed('nom').value.trim(), email: champMed('email').value.trim(), kine: champMed('kine').value.trim(), msg: champMed('msg').value }; }
+        function sauverMedecin() { LS.set('medecinDest', JSON.stringify(lireMedecin())); }
+        function chargerMedecin() {
+            let m = {};
+            try { m = JSON.parse(LS.get('medecinDest')) || {}; } catch (e) {}
+            champMed('nom').value = m.nom || ''; champMed('email').value = m.email || ''; champMed('kine').value = m.kine || '';
+            champMed('msg').value = m.msg || MSG_MEDECIN_DEFAUT;
+        }
+        function retablirMessage() { champMed('msg').value = MSG_MEDECIN_DEFAUT; sauverMedecin(); }
+        function emailValide(e) { return /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(e); }
+        function composerMessage(med, patient) {
+            const date = new Date().toLocaleDateString('fr-FR');
+            const remp = { medecin: med.nom ? 'Docteur ' + med.nom : 'Docteur', patient: patient ? patient.nom : '', date, kine: med.kine };
+            return { objet: 'Bilan kinésithérapique gériatrique - ' + date, corps: med.msg.replace(/\{(\w+)\}/g, (m, k) => (k in remp ? remp[k] : m)) };
+        }
+        function urlMailto(med, patient) {
+            const m = composerMessage(med, patient);
+            return 'mailto:' + med.email + '?subject=' + encodeURIComponent(m.objet) + '&body=' + encodeURIComponent(m.corps);
+        }
+        function majBoutonEnvoi(msg) {
+            const b = document.getElementById('btnPartagePdf'), st = document.getElementById('envoiStatut');
+            if (b) b.textContent = pdfPret ? '📎 Partager le PDF (prêt)' : '✉️ Envoyer avec le PDF';
+            if (st) st.textContent = msg || (pdfPret ? 'PDF prêt : touchez à nouveau pour choisir votre application e-mail.' : '');
+        }
+        function invaliderPdf() { if (pdfPret) { pdfPret = null; majBoutonEnvoi(); } }
+        document.addEventListener('input', e => { if (e.target.closest && e.target.closest('#bilanGeriatrieForm') && !e.target.closest('#sectionEnvoi')) invaliderPdf(); });
+        document.addEventListener('change', e => { if (e.target.closest && e.target.closest('#bilanGeriatrieForm') && !e.target.closest('#sectionEnvoi')) invaliderPdf(); });
+
+        function envoyerMailto() {
+            const patientId = document.getElementById('selectPatientGeriatrie').value;
+            if (!patientId) { alert('Veuillez sélectionner un patient.'); return; }
+            const med = lireMedecin(); sauverMedecin();
+            if (!emailValide(med.email)) { alert('Renseignez une adresse e-mail valide pour le médecin.'); return; }
+            window.location.href = urlMailto(med, patients.find(p => p.id === patientId));
+        }
+
+        async function envoyerPartage() {
+            const patientId = document.getElementById('selectPatientGeriatrie').value;
+            if (!patientId) { alert('Veuillez sélectionner un patient.'); return; }
+            const med = lireMedecin(); sauverMedecin();
+            if (!navigator.share) { alert('Le partage de fichier n’est pas disponible sur cet appareil. Utilisez « Ouvrir mon e-mail », puis joignez le PDF enregistré avec « Générer le PDF ».'); return; }
+            const m = composerMessage(med, patients.find(p => p.id === patientId));
+            if (!pdfPret || pdfPret.patientId !== patientId) {
+                majBoutonEnvoi('Génération du PDF… (quelques secondes)');
+                const r = await telechargerBilanPDF('blob');
+                if (!r) { majBoutonEnvoi('PDF non généré. Utilisez « Générer le PDF », puis « Ouvrir mon e-mail ».'); return; }
+                pdfPret = { blob: r.blob, filename: r.filename, patientId };
+                majBoutonEnvoi();
+                return; // le partage doit suivre un nouvel appui (le navigateur l'exige)
+            }
+            const file = new File([pdfPret.blob], pdfPret.filename, { type: 'application/pdf' });
+            if (navigator.canShare && !navigator.canShare({ files: [file] })) { alert('Ce navigateur ne peut pas partager un PDF. Utilisez « Générer le PDF », puis « Ouvrir mon e-mail ».'); return; }
+            try { if (emailValide(med.email) && navigator.clipboard) navigator.clipboard.writeText(med.email).catch(() => {}); } catch (e) {}
+            try { await navigator.share({ files: [file], title: m.objet, text: m.corps }); }
+            catch (e) { if (!e || e.name !== 'AbortError') alert('Partage impossible : ' + ((e && e.message) || e)); }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;',
+                '"': '&quot;', "'": '&#039;'
+            }[char]));
+        }
+
+        // Sauvegarde automatique pendant la saisie : très utile sur téléphone.
+        document.addEventListener('input', function(e) {
+            if (e.target.closest('#bilanGeriatrieForm')) {
+                sauvegarderBrouillonBilan();
+            }
+        });
+
+        document.addEventListener('change', function(e) {
+            if (e.target.closest('#bilanGeriatrieForm')) {
+                sauvegarderBrouillonBilan();
+            }
+        });
+
+        // ===== SUIVI =====
+        function remplirSelectPatientsSuivi() {
+            const select = document.getElementById('selectPatientSuivi');
+            select.innerHTML = '<option value="">Choisir un patient...</option>';
+            patients.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = p.nom;
+                select.appendChild(option);
+            });
+        }
+
+        function chargerHistoriqueSuivi() {
+            // À compléter avec l'affichage de l'historique
+        }
+
+        function ajouterSuiviGeriatrie() {
+            alert('Le suivi détaillé n’est pas encore disponible. Utilisez l’onglet Bilan Gériatrie : l’historique des bilans est conservé.');
+        }
+
+        // ===== EXERCICES =====
+        function remplirSelectPatientsExercices() {
+            const select = document.getElementById('selectPatientExercices');
+            select.innerHTML = '<option value="">Choisir un patient...</option>';
+            patients.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = p.nom;
+                select.appendChild(option);
+            });
+        }
+
+        function chargerExercicesPatient() {
+            const patientId = document.getElementById('selectPatientExercices').value;
+            if (!patientId) {
+                document.getElementById('formAjoutExercice').style.display = 'none';
+                document.getElementById('listeExercicesContainer').innerHTML = '';
+                document.getElementById('lienProgrammeExercices').innerHTML = '';
+                return;
+            }
+
+            document.getElementById('formAjoutExercice').style.display = 'block';
+            afficherExercicesPatient(patientId);
+        }
+
+        function ajouterExercice() {
+            const patientId = document.getElementById('selectPatientExercices').value;
+            if (!patientId) return alert('Veuillez sélectionner un patient.');
+            const nom = document.getElementById('nomExercice').value.trim();
+            if (!nom) return alert('Veuillez donner un nom à l’exercice.');
+
+            const exercice = {
+                id: generateUniqueId(), patientId, nom,
+                series: document.getElementById('series').value,
+                repetitions: document.getElementById('repetitions').value,
+                frequence: document.getElementById('frequence').value,
+                duree: document.getElementById('duree').value,
+                description: document.getElementById('descriptionExercice').value,
+                videoUrl: document.getElementById('videoExercice').value.trim(),
+                dateCreation: new Date().toISOString()
+            };
+            exercices.push(exercice);
+            sauvegarderDonnees();
+            ['nomExercice','descriptionExercice','videoExercice'].forEach(id => document.getElementById(id).value='');
+            afficherExercicesPatient(patientId);
+            alert('✅ Exercice ajouté au programme du patient.');
+        }
+
+        function afficherExercicesPatient(patientId) {
+            const liste = exercices.filter(e => e.patientId === patientId);
+            const container = document.getElementById('listeExercicesContainer');
+            if (!liste.length) {
+                container.innerHTML = '<p style="color:#999;">Aucun exercice pour ce patient.</p>';
+            } else {
+                container.innerHTML = liste.map(e => `
+                    <div class="exercise-card">
+                        <h4>🏋️ ${escapeHtml(e.nom)}</h4>
+                        <div><strong>Dosage :</strong> ${e.series || '—'} séries × ${e.repetitions || '—'} répétitions · ${e.frequence || '—'} fois/semaine${e.duree ? ' · '+e.duree+' s' : ''}</div>
+                        <p>${escapeHtml(e.description || '')}</p>
+                        ${e.videoUrl ? `<a href="${escapeHtml(e.videoUrl)}" target="_blank" rel="noopener">🎥 Voir la vidéo</a>` : '<span style="color:#999;">Aucune vidéo</span>'}
+                        <button type="button" class="btn-danger" style="margin-top:10px;" onclick="supprimerExercice('${e.id}')">🗑️ Supprimer</button>
+                    </div>`).join('');
+            }
+            const base = window.location.href.split('?')[0];
+            const programme = liste.map(({nom,series,repetitions,frequence,duree,description,videoUrl}) => ({nom,series,repetitions,frequence,duree,description,videoUrl}));
+            const payload = btoa(unescape(encodeURIComponent(JSON.stringify(programme)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+            const lien = base + '?programmeData=' + payload;
+            document.getElementById('lienProgrammeExercices').innerHTML = liste.length ? `
+                <div class="patient-mode-box">
+                    <strong>🔗 Un seul lien pour tout le programme</strong>
+                    <p>Le patient ouvre ce lien pour voir l’ensemble de ses exercices et leurs vidéos.</p>
+                    <div class="share-link">${escapeHtml(lien)}</div>
+                    <button type="button" class="btn-secondary" onclick="copierLien('${escapeHtml(lien)}')">📋 Copier le lien</button>
+                </div>` : '';
+        }
+
+        function supprimerExercice(id) {
+            if (!confirm('Supprimer cet exercice ?')) return;
+            exercices = exercices.filter(e => e.id !== id);
+            sauvegarderDonnees();
+            afficherExercicesPatient(document.getElementById('selectPatientExercices').value);
+        }
+
+        async function copierLien(lien) {
+            try { await navigator.clipboard.writeText(lien); alert('✅ Lien copié.'); }
+            catch(e) { prompt('Copiez ce lien :', lien); }
+        }
+
+        function preparerLienPatient() {
+            const nom = document.getElementById('nom').value.trim();
+            const email = document.getElementById('email').value.trim();
+            if (!nom || !email) { alert('Renseignez au minimum le nom et l’email avant de préparer le lien.'); return; }
+            const token = 'patient-' + generateUniqueId();
+            const lien = window.location.href.split('?')[0] + '?patientForm=' + encodeURIComponent(token);
+            document.getElementById('lienPatientContainer').innerHTML = `<div class="share-link">${escapeHtml(lien)}</div><button type="button" class="btn-secondary" onclick="copierLien('${escapeHtml(lien)}')">📋 Copier le lien patient</button>`;
+        }
+
+        function afficherProgrammePublic(liste) {
+            const container = document.getElementById('listeExercicesContainer');
+            container.innerHTML = liste.map(e => `
+                <div class="exercise-card">
+                    <h3>🏋️ ${escapeHtml(e.nom || 'Exercice')}</h3>
+                    <div><strong>Dosage :</strong> ${e.series || '—'} séries × ${e.repetitions || '—'} répétitions · ${e.frequence || '—'} fois/semaine${e.duree ? ' · '+e.duree+' s' : ''}</div>
+                    <p>${escapeHtml(e.description || '')}</p>
+                    ${e.videoUrl ? `<a class="btn-primary" href="${escapeHtml(e.videoUrl)}" target="_blank" rel="noopener">🎥 Voir la vidéo</a>` : ''}
+                </div>`).join('');
+            document.getElementById('lienProgrammeExercices').innerHTML = '';
+        }
+
+        function activerModePatientAVQ() {
+            document.querySelectorAll('#bilanGeriatrieForm > .test-section').forEach(section => {
+                if (!section.querySelector('[name^="katz_"]') && !section.querySelector('#attentes_bilan')) section.style.display = 'none';
+            });
+            const avq = document.querySelector('#bilanGeriatrieForm .test-section:has([name="katz_toilette"])');
+            if (avq) avq.style.display = 'block';
+            const retour = document.createElement('button');
+            retour.type='button'; retour.className='btn-secondary'; retour.textContent='↩️ Revenir au bilan complet';
+            retour.onclick=()=>document.querySelectorAll('#bilanGeriatrieForm > .test-section').forEach(s=>s.style.display='');
+            avq?.appendChild(retour);
+            avq?.scrollIntoView({behavior:'smooth'});
+        }
+
+        function gererLienPublic() {
+            const params = new URLSearchParams(window.location.search);
+            const programmeData = params.get('programmeData');
+            const patientFormToken = params.get('patientForm');
+            if (programmeData) {
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                const sec = document.getElementById('exercices');
+                sec.classList.add('active');
+                document.querySelector('.nav-buttons').style.display = 'none';
+                document.querySelector('.container').insertAdjacentHTML('afterbegin', '<div class="patient-mode-box"><strong>📱 Programme d’exercices</strong><p>Voici votre programme personnalisé. Appuyez sur une vidéo pour voir la démonstration.</p></div>');
+                document.getElementById('formAjoutExercice').style.display = 'none';
+                try {
+                    const normalized = programmeData.replace(/-/g,'+').replace(/_/g,'/');
+                    const json = decodeURIComponent(escape(atob(normalized)));
+                    const programme = JSON.parse(json);
+                    afficherProgrammePublic(programme);
+                } catch(e) {
+                    document.getElementById('listeExercicesContainer').innerHTML = '<p>Impossible de charger le programme.</p>';
+                }
+            } else if (patientFormToken) {
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.getElementById('nouveau-patient').classList.add('active');
+                document.querySelector('.nav-buttons').style.display = 'none';
+                document.getElementById('nouveau-patient').querySelector('.btn-primary').textContent = '📨 Envoyer mes informations';
+                document.getElementById('nouveau-patient').insertAdjacentHTML('afterbegin', '<div class="patient-mode-box"><strong>👋 Bienvenue</strong><p>Merci de compléter les informations ci-dessous avant votre rendez-vous. Ces informations restent sur votre téléphone et ne sont pas envoyées automatiquement : pensez à les communiquer à votre kiné.</p></div>');
+            }
+        }
+
+        // ===== DOULEUR =====
+        const ZONES_DOULEUR = ['Tête / cervicales','Épaule droite','Épaule gauche','Coude / bras','Poignet / main','Dorsales','Lombaires / bassin','Hanche droite','Hanche gauche','Genou droit','Genou gauche','Cheville / pied droit','Cheville / pied gauche','Autre'];
+        const QUAND = ['Au repos','À la mobilisation',"À l'effort / marche",'La nuit','Au réveil / le matin','En fin de journée','Permanente'];
+        const NATURE = ['Mécanique','Brûlure','Décharge électrique','Étau / serrement','Lancinante','Sourde / diffuse','Autre'];
+        let douleurs = [];
+        let zoneSel = null;
+        let forceScan = {};
+        function lireData(id) { try { return JSON.parse(document.getElementById(id).value) || null; } catch (e) { return null; } }
+        function saveData(id, obj) { document.getElementById(id).value = JSON.stringify(obj); invaliderPdf(); sauvegarderBrouillonBilan(); }
+        function couleurEVA(n) { return n <= 3 ? '#2e9e4f' : n <= 6 ? '#f39c12' : '#c62828'; }
+
+        function renderDouleur() {
+            const d0 = lireData('douleur_data');
+            douleurs = Array.isArray(d0) ? d0 : [];
+            const sel = document.getElementById('douleur_zone_sel');
+            if (!sel.options.length) sel.innerHTML = ZONES_DOULEUR.map(z => `<option>${z}</option>`).join('');
+            const opt = (arr, v) => arr.map(o => `<option${o === v ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('');
+            document.getElementById('douleurListe').innerHTML = douleurs.length ? douleurs.map((d, i) => `
+                <div class="patient-card" style="border-left-color:${couleurEVA(d.eva)}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                        <strong>📍 ${escapeHtml(d.zone)}</strong>
+                        <button type="button" class="btn-danger" style="width:auto;padding:6px 12px" onclick="supprimerZoneDouleur(${i})">✕</button>
+                    </div>
+                    <div class="form-group"><label>Intensité (EVA 0-10) : <span id="evaVal${i}" style="color:${couleurEVA(d.eva)};font-weight:700">${d.eva}/10</span></label>
+                        <input type="range" min="0" max="10" value="${d.eva}" oninput="majDouleur(${i},'eva',this.value)"></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Quand ?</label><select onchange="majDouleur(${i},'quand',this.value)">${opt(QUAND, d.quand)}</select></div>
+                        <div class="form-group"><label>Comment (nature) ?</label><select onchange="majDouleur(${i},'nature',this.value)">${opt(NATURE, d.nature)}</select></div>
+                    </div>
+                    <div class="form-group"><label>Depuis quand ?</label><input type="text" value="${escapeHtml(d.depuis || '')}" placeholder="Ex : 3 semaines, après une chute…" oninput="majDouleur(${i},'depuis',this.value)"></div>
+                    <div class="form-group"><label>Remarques</label><textarea oninput="majDouleur(${i},'note',this.value)">${escapeHtml(d.note || '')}</textarea></div>
+                </div>`).join('') : '<p style="color:#999">Aucune zone douloureuse ajoutée.</p>';
+        }
+        function ajouterZoneDouleur() {
+            douleurs.push({ zone: document.getElementById('douleur_zone_sel').value, eva: 0, quand: QUAND[0], nature: NATURE[0], depuis: '', note: '' });
+            saveData('douleur_data', douleurs); renderDouleur();
+        }
+        function supprimerZoneDouleur(i) { douleurs.splice(i, 1); saveData('douleur_data', douleurs); renderDouleur(); }
+        function majDouleur(i, k, v) {
+            douleurs[i][k] = k === 'eva' ? +v : v;
+            if (k === 'eva') { const s = document.getElementById('evaVal' + i); if (s) { s.textContent = v + '/10'; s.style.color = couleurEVA(+v); } }
+            saveData('douleur_data', douleurs);
+        }
+
+        // ===== BODY SCAN FORCE (échelle MRC) =====
+        const MRC = [
+            [0, 'Aucune contraction', '#7f1d1d'], [1, 'Ébauche de contraction, sans mouvement', '#c62828'],
+            [2, 'Mouvement possible, gravité éliminée', '#f4511e'], [3, 'Mouvement complet contre la gravité', '#ffb300'],
+            [4, 'Mouvement contre résistance modérée', '#9ccc3b'], [5, 'Force normale', '#2e9e4f']
+        ];
+        const ZF = [{ id: 'tronc', l: 'Tronc (abdominaux)', m: 'Abdominaux', e: 'rect', a: 'x="74" y="62" width="52" height="86" rx="14"' }];
+        [['ep', 'Épaule', 'Abducteurs (deltoïde)', 'circle', 62, 'cy="70" r="13"'],
+         ['co', 'Coude', 'Fléchisseurs (biceps)', 'ellipse', 48, 'cy="118" rx="10" ry="17"'],
+         ['po', 'Poignet / main', 'Extenseurs du poignet', 'ellipse', 38, 'cy="172" rx="9" ry="18"'],
+         ['ha', 'Hanche', 'Fléchisseurs (psoas)', 'ellipse', 84, 'cy="172" rx="14" ry="16"'],
+         ['ge', 'Genou', 'Extenseurs (quadriceps)', 'ellipse', 82, 'cy="240" rx="14" ry="38"'],
+         ['ch', 'Cheville', 'Dorsiflexion (tibial antérieur)', 'ellipse', 80, 'cy="330" rx="11" ry="38"']
+        ].forEach(([k, l, m, e, x, a]) => {
+            ZF.push({ id: k + 'D', l: l + ' (D)', m, e, a: `cx="${x}" ${a}` }, { id: k + 'G', l: l + ' (G)', m, e, a: `cx="${200 - x}" ${a}` });
+        });
+
+        function renderBodyScan() {
+            const f0 = lireData('force_scan_data');
+            forceScan = f0 && typeof f0 === 'object' ? f0 : {};
+            const zones = ZF.map(z => {
+                const d = forceScan[z.id];
+                const c = d && d.ok ? MRC[d.g][2] : '#d9dcec';
+                return `<${z.e} ${z.a} class="bz${zoneSel === z.id ? ' sel' : ''}" fill="${c}" onclick="choisirZone('${z.id}')"><title>${z.l}</title></${z.e}>`;
+            }).join('');
+            document.getElementById('bodyScan').innerHTML = `
+                <svg viewBox="0 0 200 380" style="width:100%;max-width:230px;display:block;margin:0 auto" role="img" aria-label="Schéma du corps">
+                    <rect x="90" y="48" width="20" height="16" fill="#eef0fb"/>
+                    <circle cx="100" cy="30" r="20" fill="#eef0fb" stroke="#667eea" stroke-width="1.5"/>
+                    <text x="6" y="14" font-size="12" fill="#667eea">D</text><text x="184" y="14" font-size="12" fill="#667eea">G</text>${zones}
+                </svg>
+                <div class="legende-mrc">${MRC.map(r => `<span><i style="background:${r[2]}"></i>${r[0]}/5</span>`).join('')}<span><i style="background:#d9dcec"></i>non évalué</span></div>`;
+            const ok = ZF.filter(z => forceScan[z.id] && forceScan[z.id].ok);
+            document.getElementById('forceRecap').innerHTML = `<strong>${ok.length}/${ZF.length} zones évaluées</strong>` +
+                (ok.length ? '<ul style="margin:8px 0 0 18px">' + ok.map(z => { const d = forceScan[z.id]; return `<li>${z.l} - ${escapeHtml(d.m || z.m)} : <strong>${d.g}/5</strong>${d.n ? ' - ' + escapeHtml(d.n) : ''}</li>`; }).join('') + '</ul>' : '');
+            renderPanelZone();
+        }
+        function renderPanelZone() {
+            const p = document.getElementById('forcePanel');
+            if (!zoneSel) { p.innerHTML = '<p style="color:#666">Touchez une zone du corps pour évaluer la force.</p>'; return; }
+            const z = ZF.find(x => x.id === zoneSel), d = forceScan[zoneSel] || { g: 5, m: z.m, n: '' };
+            p.innerHTML = `<h4>${z.l}</h4>
+                <div class="form-group"><label>Muscle / mouvement testé</label><input type="text" data-f="m" value="${escapeHtml(d.m || z.m)}"></div>
+                <div class="form-group"><label>Cotation MRC (0-5)</label><select data-f="g">${MRC.map(r => `<option value="${r[0]}"${r[0] == d.g ? ' selected' : ''}>${r[0]}/5 - ${r[1]}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Remarque</label><textarea data-f="n">${escapeHtml(d.n || '')}</textarea></div>
+                <button type="button" class="btn-primary" onclick="validerZone()">✅ Valider cette zone</button>
+                <button type="button" class="btn-secondary" style="margin-top:8px" onclick="effacerZone()">↩️ Effacer</button>`;
+        }
+        function choisirZone(id) {
+            zoneSel = id; renderBodyScan();
+            document.getElementById('forcePanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        function validerZone() {
+            const p = document.getElementById('forcePanel'), q = f => p.querySelector(`[data-f="${f}"]`).value;
+            forceScan[zoneSel] = { g: parseInt(q('g'), 10), m: q('m'), n: q('n'), ok: true };
+            saveData('force_scan_data', forceScan); zoneSel = null; renderBodyScan();
+        }
+        function effacerZone() { delete forceScan[zoneSel]; saveData('force_scan_data', forceScan); zoneSel = null; renderBodyScan(); }
+
+        // ===== ÉVALUATION ARTICULAIRE =====
+        const LIM = [['Aucune', '#2e9e4f'], ['Légère', '#9ccc3b'], ['Modérée', '#ffb300'], ['Sévère', '#c62828']];
+        const CAUSES = ['Non précisée', 'Douleur', 'Raideur capsulaire / rétraction', 'Arthrose / enraidissement', 'Œdème / épanchement', 'Faiblesse musculaire', 'Appréhension', 'Matériel / immobilisation', 'Autre'];
+        const ZA = [
+            { id: 'cerv', l: 'Rachis cervical', m: 'Flexion / extension / rotations / inclinaisons', e: 'circle', a: 'cx="100" cy="57" r="8"' },
+            { id: 'rach', l: 'Rachis dorso-lombaire', m: 'Flexion / extension / rotations / inclinaisons', e: 'rect', a: 'x="91" y="84" width="18" height="60" rx="8"' }
+        ];
+        [['ep', 'Épaule', 'Flexion / abduction / rotations', 62, 'cy="70" r="13"'],
+         ['co', 'Coude', 'Flexion / extension / prono-supination', 48, 'cy="116" r="10"'],
+         ['po', 'Poignet', 'Flexion / extension / inclinaisons', 38, 'cy="166" r="9"'],
+         ['ha', 'Hanche', 'Flexion / extension / abduction / rotations', 84, 'cy="174" r="13"'],
+         ['ge', 'Genou', 'Flexion / extension', 82, 'cy="236" r="12"'],
+         ['ch', 'Cheville', 'Dorsiflexion / flexion plantaire / inversion-éversion', 80, 'cy="322" r="11"']
+        ].forEach(([k, l, m, x, a]) => {
+            ZA.push({ id: k + 'D', l: l + ' (D)', m, e: 'circle', a: `cx="${x}" ${a}` }, { id: k + 'G', l: l + ' (G)', m, e: 'circle', a: `cx="${200 - x}" ${a}` });
+        });
+        let zoneArt = null;
+        let articScan = {};
+
+        function renderArtic() {
+            const f0 = lireData('artic_scan_data');
+            articScan = f0 && typeof f0 === 'object' ? f0 : {};
+            const zones = ZA.map(z => {
+                const d = articScan[z.id];
+                const c = d && d.ok ? LIM[d.lim][1] : '#d9dcec';
+                return `<${z.e} ${z.a} class="bz${zoneArt === z.id ? ' sel' : ''}" fill="${c}" onclick="choisirArtic('${z.id}')"><title>${z.l}</title></${z.e}>`;
+            }).join('');
+            const bras = [[62, 70, 48, 116, 38, 166], [138, 70, 152, 116, 162, 166]].map(a => `<polyline points="${a[0]},${a[1]} ${a[2]},${a[3]} ${a[4]},${a[5]}" fill="none" stroke="#e3e6f6" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+            const jambes = [[84, 174, 82, 236, 80, 322, 80, 362], [116, 174, 118, 236, 120, 322, 120, 362]].map(a => `<polyline points="${a[0]},${a[1]} ${a[2]},${a[3]} ${a[4]},${a[5]} ${a[6]},${a[7]}" fill="none" stroke="#e3e6f6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+            document.getElementById('articScan').innerHTML = `
+                <svg viewBox="0 0 200 380" style="width:100%;max-width:230px;display:block;margin:0 auto" role="img" aria-label="Schéma des articulations">
+                    <rect x="74" y="62" width="52" height="86" rx="14" fill="#f4f5fb" stroke="#dfe3f5"/>${bras}${jambes}
+                    <circle cx="100" cy="30" r="20" fill="#eef0fb" stroke="#667eea" stroke-width="1.5"/>
+                    <text x="6" y="14" font-size="12" fill="#667eea">D</text><text x="184" y="14" font-size="12" fill="#667eea">G</text>${zones}
+                </svg>
+                <div class="legende-mrc">${LIM.map(r => `<span><i style="background:${r[1]}"></i>${r[0]}</span>`).join('')}<span><i style="background:#d9dcec"></i>non évalué</span></div>`;
+            const ok = ZA.filter(z => articScan[z.id] && articScan[z.id].ok);
+            document.getElementById('articRecap').innerHTML = `<strong>${ok.length}/${ZA.length} articulations évaluées</strong>` +
+                (ok.length ? '<ul style="margin:8px 0 0 18px">' + ok.map(z => {
+                    const d = articScan[z.id];
+                    const amp = (d.aa || d.ap) ? ` (actif ${d.aa || '—'}° / passif ${d.ap || '—'}°)` : '';
+                    return `<li><strong>${z.l}</strong> - limitation ${LIM[d.lim][0].toLowerCase()}${amp}${d.lim > 0 ? ' - ' + escapeHtml(d.m || z.m) : ''}${d.lim > 0 && d.c && d.c !== CAUSES[0] ? ' - cause : ' + escapeHtml(d.c) : ''}${d.n ? ' - ' + escapeHtml(d.n) : ''}</li>`;
+                }).join('') + '</ul>' : '');
+            const dt = document.getElementById('sectionArtic');
+            if (dt && ok.length) dt.open = true;
+            renderPanelArtic();
+        }
+        function renderPanelArtic() {
+            const p = document.getElementById('articPanel');
+            if (!zoneArt) { p.innerHTML = '<p style="color:#666">Touchez une articulation du schéma pour l\'évaluer.</p>'; return; }
+            const z = ZA.find(x => x.id === zoneArt), d = articScan[zoneArt] || { lim: 0, m: z.m, aa: '', ap: '', c: CAUSES[0], n: '' };
+            p.innerHTML = `<h4>${z.l}</h4>
+                <div class="form-group"><label>Limitation d'amplitude</label><select data-f="lim">${LIM.map((r, i) => `<option value="${i}"${i == d.lim ? ' selected' : ''}>${r[0]}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Mouvement(s) concerné(s)</label><input type="text" data-f="m" value="${escapeHtml(d.m || z.m)}"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Amplitude active (°)</label><input type="number" data-f="aa" min="0" value="${escapeHtml(d.aa)}"></div>
+                    <div class="form-group"><label>Amplitude passive (°)</label><input type="number" data-f="ap" min="0" value="${escapeHtml(d.ap)}"></div>
+                </div>
+                <div class="form-group"><label>Pourquoi ? (cause de la limitation)</label><select data-f="c">${CAUSES.map(c => `<option${c === d.c ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Remarque</label><textarea data-f="n">${escapeHtml(d.n || '')}</textarea></div>
+                <button type="button" class="btn-primary" onclick="validerArtic()">✅ Valider cette articulation</button>
+                <button type="button" class="btn-secondary" style="margin-top:8px" onclick="effacerArtic()">↩️ Effacer</button>`;
+        }
+        function choisirArtic(id) {
+            zoneArt = id; renderArtic();
+            document.getElementById('articPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        function validerArtic() {
+            const p = document.getElementById('articPanel'), q = f => p.querySelector(`[data-f="${f}"]`).value;
+            articScan[zoneArt] = { lim: parseInt(q('lim'), 10), m: q('m'), aa: q('aa'), ap: q('ap'), c: q('c'), n: q('n'), ok: true };
+            saveData('artic_scan_data', articScan); zoneArt = null; renderArtic();
+        }
+        function effacerArtic() { delete articScan[zoneArt]; saveData('artic_scan_data', articScan); zoneArt = null; renderArtic(); }
+
+        // ===== SECTIONS OPTIONNELLES (sommeil, alimentation) =====
+        function rendreAccessoires() {
+            ['sommeil_qualite', 'nutrition_poids'].forEach(id => {
+                const sec = document.getElementById(id)?.closest('.test-section');
+                if (!sec || sec.tagName === 'DETAILS') return;
+                const h = sec.querySelector('h3'), d = document.createElement('details'), sm = document.createElement('summary');
+                d.className = 'test-section accessoire';
+                sm.textContent = h.textContent + ' - optionnel (toucher pour ouvrir)';
+                d.appendChild(sm); h.remove();
+                while (sec.firstChild) d.appendChild(sec.firstChild);
+                sec.replaceWith(d);
+            });
+        }
+
+        // ===== SAUVEGARDE / RESTAURATION =====
+        async function enregistrerFichier(filename, data) {
+            let dl = null;
+            try { dl = (window.claude && window.claude.use) ? await window.claude.use('downloads') : null; } catch(e) {}
+            if (dl) {
+                try { await dl.save({ filename, data }); return true; }
+                catch(e) { if (e && e.code === 'declined') return false; }
+            }
+            // Repli : téléchargement classique (hors page publiée)
+            try {
+                const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data]));
+                const a = document.createElement('a'); a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                return true;
+            } catch(e) { return false; }
+        }
+
+        function majInfoSauvegarde() {
+            const el = document.getElementById('derniereSauvegarde');
+            if (!el) return;
+            const d = LS.get('derniereSauvegarde');
+            el.textContent = d ? '✅ Dernière sauvegarde : ' + new Date(d).toLocaleDateString('fr-FR') : '⚠️ Aucune sauvegarde : pensez à exporter vos données.';
+        }
+
+        async function exporterSauvegarde() {
+            const brouillons = {};
+            try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('bilanBrouillon_')) brouillons[k] = LS.get(k); } } catch(e) {}
+            const contenu = { version: 1, date: new Date().toISOString(), patients, bilansGeriatrie, suivis, exercices, brouillons };
+            const ok = await enregistrerFichier('Sauvegarde_Bilans_Kine_' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(contenu, null, 2));
+            if (ok) { LS.set('derniereSauvegarde', new Date().toISOString()); majInfoSauvegarde(); }
+            else { alert('La sauvegarde n’a pas été enregistrée.'); }
+        }
+
+        function importerSauvegarde(input) {
+            const fichier = input.files && input.files[0];
+            if (!fichier) return;
+            const lecteur = new FileReader();
+            lecteur.onload = () => {
+                try {
+                    const d = JSON.parse(lecteur.result);
+                    if (!d || !Array.isArray(d.patients)) throw new Error('format');
+                    if (!confirm('Remplacer les données actuelles de cet appareil par cette sauvegarde (' + d.patients.length + ' patient(s)) ?')) return;
+                    LS.set('patients', JSON.stringify(d.patients));
+                    LS.set('bilansGeriatrie', JSON.stringify(d.bilansGeriatrie || []));
+                    LS.set('suivis', JSON.stringify(d.suivis || []));
+                    LS.set('exercices', JSON.stringify(d.exercices || []));
+                    Object.entries(d.brouillons || {}).forEach(([k, v]) => { if (k.startsWith('bilanBrouillon_') && typeof v === 'string') LS.set(k, v); });
+                    location.reload();
+                } catch(e) { alert('Fichier de sauvegarde invalide.'); }
+            };
+            lecteur.readAsText(fichier);
+            input.value = '';
+        }
+
+        // Initialisation
+        try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch(e) {}
+        majInfoSauvegarde();
+        renderDouleur(); renderBodyScan(); renderArtic(); rendreAccessoires(); chargerMedecin();
+        document.getElementById('dateSuivi').value = new Date().toISOString().split('T')[0];
+        gererLienPublic();
+
+        // Préparer la sauvegarde automatique et l'affichage mobile.
+        console.log('✅ Application gériatrique chargée!');
+
+    </script>
+</body>
