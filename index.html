@@ -1241,8 +1241,10 @@
 
                 <div class="button-group">
                     <button class="btn-primary" onclick="sauvegarderBilanGeriatrie()">💾 Enregistrer le Bilan</button>
-                    <button class="btn-secondary" onclick="telechargerBilanPDF('print')">📄 PDF (impression)</button>
-                    <button class="btn-secondary" onclick="telechargerBilanPDF()">📥 PDF direct</button>
+                    <button class="btn-secondary" onclick="telechargerBilanPDF('synthetique')">📄 PDF synthétique</button>
+                    <button class="btn-secondary" onclick="telechargerBilanPDF('complet')">📚 PDF complet</button>
+                    <button class="btn-secondary" onclick="telechargerBilanPDF('print-synthetique')">🖨️ Imprimer — synthétique</button>
+                    <button class="btn-secondary" onclick="telechargerBilanPDF('print')">🖨️ Imprimer — complet</button>
                 </div>
 
                 <div class="test-section" id="sectionEnvoi" data-pdf-skip style="margin-top:20px;">
@@ -1694,10 +1696,10 @@
             }
 
             let interpretation = '';
-            if (score <= 9) interpretation = '✅ Pas de peur / Bonne confiance';
-            else if (score <= 12) interpretation = '🟡 Peur légère';
-            else if (score <= 18) interpretation = '🟠 Peur modérée';
-            else interpretation = '🔴 Peur importante';
+            if (score >= 7 && score <= 8) interpretation = '🟢 Préoccupation faible (Short FES-I)';
+            else if (score >= 9 && score <= 13) interpretation = '🟠 Préoccupation modérée (Short FES-I)';
+            else if (score >= 14 && score <= 28) interpretation = '🔴 Préoccupation élevée (Short FES-I)';
+            else interpretation = 'À interpréter lorsque les 7 items sont renseignés';
 
             document.getElementById('score_fes_i').textContent = score;
             document.getElementById('interpretation_fes_i').innerHTML = `${score}/28 - ${interpretation}`;
@@ -1837,12 +1839,13 @@
                         borderColor: '#667eea',
                         backgroundColor: 'rgba(102, 126, 234, 0.15)',
                         borderWidth: 2,
-                        pointBackgroundColor: '#667eea',
+                        pointBackgroundColor: ['#238A78','#238A78','#238A78','#238A78','#3878B8','#9B6BB3','#3B82A0','#7B61A8','#7B61A8','#D58A37','#D58A37'],
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                         pointRadius: 5,
                         pointHoverRadius: 7,
-                        fill: true
+                        fill: true,
+                        segment: { borderColor: ctx => ['#238A78','#238A78','#238A78','#238A78','#3878B8','#9B6BB3','#3B82A0','#7B61A8','#7B61A8','#D58A37','#D58A37'][ctx.p0DataIndex] || '#667eea' }
                     }]
                 },
                 options: {
@@ -2043,6 +2046,81 @@
                 '💾 Enregistré le ' + new Date(bilan.date).toLocaleDateString('fr-FR');
         }
 
+        function construirePDFSynthetique(source, patient) {
+            const report = document.createElement('div');
+            report.className = 'pdf-synthetique';
+            report.style.cssText = 'font-family:Arial,sans-serif;color:#253044;font-size:11px;line-height:1.35;';
+            const colors = {douleur:'#D95D5D',articulaire:'#E5A33D',musculaire:'#3878B8',force:'#7B61A8',equilibre:'#238A78',sommeil:'#D58A37',confiance:'#9B6BB3',avq:'#3B82A0',projet:'#455A64',sens:'#64748B'};
+            const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+            const val = id => { const e=source.querySelector('#'+id); return e ? (e.value || '').trim() : ''; };
+            const text = id => { const e=source.querySelector('#'+id); return e ? (e.textContent || '').trim() : ''; };
+            const checked = name => { const e=source.querySelector('input[name="'+name+'"]:checked'); if(!e) return ''; const label=e.closest('label'); return label ? label.textContent.trim() : e.value; };
+            const selected = id => { const e=source.querySelector('#'+id); return e && e.value ? e.options[e.selectedIndex]?.text || e.value : ''; };
+            const card = (title, color, rows, raw='') => {
+                const content = rows.filter(r=>r && r[1] && String(r[1]).trim() && !/^--$/.test(String(r[1]).trim()));
+                const extra = (raw || '').trim();
+                if (!content.length && !extra) return;
+                const box=document.createElement('section');
+                box.style.cssText=`margin:0 0 9px;padding:8px 10px;border:1px solid #e1e6ed;border-left:4px solid ${color};border-radius:5px;break-inside:avoid;`;
+                const h=document.createElement('h2'); h.textContent=title; h.style.cssText=`font-size:13px;margin:0 0 5px;color:${color};`; box.appendChild(h);
+                content.forEach(r=>{const line=document.createElement('p');line.style.cssText='margin:2px 0;'; const b=document.createElement('strong');b.textContent=r[0]+': ';line.appendChild(b);line.appendChild(document.createTextNode(String(r[1])));box.appendChild(line);});
+                if(extra){const d=document.createElement('div');d.style.cssText='margin-top:4px;white-space:pre-wrap;';d.textContent=extra;box.appendChild(d);}
+                report.appendChild(box);
+            };
+            const header=document.createElement('div'); header.style.cssText='border-bottom:2px solid #455A64;padding-bottom:8px;margin-bottom:10px;';
+            const h=document.createElement('h1');h.textContent='Bilan kinésithérapique gériatrique — synthèse';h.style.cssText='font-size:20px;margin:0 0 5px;color:#263746;';header.appendChild(h);
+            const meta=document.createElement('div');meta.textContent='Patient : '+(patient?.nom||'')+'  |  Date : '+new Date().toLocaleDateString('fr-FR');meta.style.fontSize='11px';header.appendChild(meta);report.appendChild(header);
+            card('Attentes et objectifs du patient',colors.projet,[['Attentes',val('attentes_bilan')],['Objectifs exprimés',val('objectifs_patient_bilan')]]);
+            const sens=[['Audition',checked('audition_probleme') ? 'Difficulté : '+checked('audition_probleme')+(checked('audition_appareil')?' ; appareil : '+checked('audition_appareil'):'') : ''],['Vision',checked('vision_probleme') ? 'Difficulté : '+checked('vision_probleme')+(checked('vision_lunettes')?' ; lunettes/lentilles : '+checked('vision_lunettes'):'') : '']];
+            card('Audition et vision',colors.sens,sens);
+            const douleur=source.querySelector('#douleurListe');
+            card('Douleur',colors.douleur,[],douleur ? douleur.innerText.trim() : '');
+            const articul=source.querySelector('#articRecap');
+            card('Évaluation articulaire',colors.articulaire,[['Notes',val('notes_artic')]],articul ? articul.innerText.trim() : '');
+            const gripRows=[];
+            if(text('grip_moyenne_droite') && text('grip_moyenne_droite')!=='--') gripRows.push(['Moyenne main droite',text('grip_moyenne_droite')+' kg']);
+            if(text('grip_moyenne_gauche') && text('grip_moyenne_gauche')!=='--') gripRows.push(['Moyenne main gauche',text('grip_moyenne_gauche')+' kg']);
+            if(val('grip_synthese')) gripRows.push(['Synthèse clinique',val('grip_synthese')]);
+            if(val('grip_prediction')) gripRows.push(['Interprétation clinique',val('grip_prediction')]);
+            const gripNote='Repère scientifique : le consensus EWGSOP2 retient une force de préhension maximale < 27 kg chez l’homme et < 16 kg chez la femme comme indicateur de faible force musculaire dans l’évaluation d’une sarcopénie probable. Ces seuils s’appliquent à une mesure maximale standardisée ; si l’on rapporte une moyenne des essais, il faut conserver le même protocole et interpréter le seuil avec prudence. Une mesure isolée ne pose pas à elle seule un diagnostic.';
+            card('Préhension (grip test)',colors.musculaire,gripRows,gripRows.length ? gripNote : '');
+            const force=source.querySelector('#forceRecap');
+            card('Body scan — synthèse',colors.force,[['Notes de force',val('notes_force')]],force ? force.innerText.trim() : '');
+            const tinetti=[];
+            if(val('tinetti_score_total')) tinetti.push(['Tinetti',val('tinetti_score_total')+'/28']);
+            if(val('tinetti_synthese_marche')) tinetti.push(['Synthèse de marche',val('tinetti_synthese_marche')]);
+            if(val('tinetti_prediction')) tinetti.push(['Prédiction / interprétation',val('tinetti_prediction')]);
+            card('Équilibre et marche — Tinetti',colors.equilibre,tinetti);
+            const lever=val('test_lever_chaise_temps');
+            card('Lever de chaise',colors.equilibre,[['Résultat',lever ? lever+' s' : ''],['Observation',val('test_lever_chaise_remarques')]]);
+            const tug=val('test_tug_temps');
+            card('Timed Up and Go (TUG)',colors.equilibre,[['Résultat',tug ? tug+' s' : ''],['Observation',val('test_tug_remarques')]]);
+            card('Vitesse de marche',colors.equilibre,[['Résultat',val('vitesse_marche_result') ? val('vitesse_marche_result')+' m/s' : '']]);
+            const fes=text('score_fes_i');
+            const fesNote='La Short FES-I (7 items, score 7–28) mesure la préoccupation liée au risque de chute dans les activités quotidiennes : 7–8 faible, 9–13 modérée, 14–28 élevée. Elle renseigne sur la confiance/préoccupation ressentie et complète, sans remplacer, l’évaluation objective de l’équilibre.';
+            card('Confiance et préoccupation liée aux chutes — Short FES-I',colors.confiance,[['Score',fes && fes!=='--' ? fes+'/28' : ''],['Interprétation',text('interpretation_fes_i')]],fes && fes!=='--' ? fesNote : '');
+            const katz=text('score_katz');
+            card('Autonomie — AVQ (Katz)',colors.avq,[['Score',katz && katz!=='--' ? katz+'/6' : ''],['Interprétation',text('interpretation_katz')]],katz && katz!=='--' ? 'L’échelle de Katz décrit l’autonomie dans six activités de base de la vie quotidienne. Un score plus élevé indique une autonomie plus importante.' : '');
+            const sommeilRows=[];
+            if(val('sommeil_duree')) sommeilRows.push(['Durée de sommeil',val('sommeil_duree')+' h']);
+            if(val('sommeil_qualite') && source.querySelector('#sommeil_qualite')?.dataset?.userChanged==='1') sommeilRows.push(['Qualité du sommeil',val('sommeil_qualite')+'/10']);
+            if(selected('sommeil_reveils')) sommeilRows.push(['Réveils nocturnes',selected('sommeil_reveils')]);
+            const sommeilProblemes=Array.from(source.querySelectorAll('input[name="sommeil_problemes"]:checked')).map(e=>e.closest('label')?.textContent.trim()||e.value).join(', ');
+            if(sommeilProblemes) sommeilRows.push(['Problèmes rapportés',sommeilProblemes]);
+            card('Sommeil',colors.sommeil,sommeilRows);
+            const nutritionRows=[];
+            if(val('nutrition_poids')) nutritionRows.push(['Poids',val('nutrition_poids')+' kg']);
+            if(text('nutrition_imc') && text('nutrition_imc')!=='--') nutritionRows.push(['IMC',text('nutrition_imc')+' kg/m²']);
+            if(val('nutrition_observations')) nutritionRows.push(['Synthèse',val('nutrition_observations')]);
+            if(val('nutrition_variation') && source.querySelector('#nutrition_poids')?.value) nutritionRows.push(['Variation pondérale',selected('nutrition_variation')]);
+            card('Alimentation et état nutritionnel',colors.sommeil,nutritionRows);
+            // Araignée : image du graphique conservée dans les deux versions.
+            const canvas=source.querySelector('#geriatrieChart');
+            if(canvas){const box=document.createElement('section');box.style.cssText='margin:10px 0;padding:8px;border:1px solid #e1e6ed;border-radius:5px;break-inside:avoid;';const title=document.createElement('h2');title.textContent='Profil fonctionnel — diagramme araignée';title.style.cssText='font-size:13px;margin:0 0 5px;color:#455A64;';box.appendChild(title);const c=document.createElement('canvas');c.id='geriatrieChart';c.width=canvas.width;c.height=canvas.height;c.style.cssText='display:block;width:100%;max-height:270px;';box.appendChild(c);report.appendChild(box);}
+            card('Projet de prise en charge',colors.projet,[['Objectifs retenus',val('objectifs_retenus')],['Plan d’action',val('mise_en_place_objectifs')],['Conclusion',val('conclusion_bilan')]]);
+            return report;
+        }
+
         async function telechargerBilanPDF(mode) {
             const patientId = document.getElementById('selectPatientGeriatrie').value;
             if (!patientId) {
@@ -2050,7 +2128,9 @@
                 return;
             }
 
-            if (!(mode === 'print' && window.self === window.top) && typeof html2pdf === 'undefined') {
+            const modeImpression = mode === 'print' || mode === 'print-synthetique';
+            const versionSynthetique = mode === 'synthetique' || mode === 'print-synthetique';
+            if (!(modeImpression && window.self === window.top) && typeof html2pdf === 'undefined') {
                 alert('Le module PDF n’est pas chargé. Vérifiez votre connexion Internet.');
                 return;
             }
@@ -2092,8 +2172,28 @@
             `;
             wrapper.appendChild(title);
 
-            const clone = source.cloneNode(true);
+            const clone = versionSynthetique ? construirePDFSynthetique(source, patient) : source.cloneNode(true);
             clone.style.display = 'block';
+
+            if (versionSynthetique) {
+                clone.querySelectorAll('canvas').forEach(c => {
+                    const original = source.querySelector('#' + c.id);
+                    if (original && original.toDataURL) { const img=document.createElement('img'); img.src=original.toDataURL('image/png',1); img.style.cssText='display:block;width:100%;max-height:270px;object-fit:contain;'; c.replaceWith(img); }
+                });
+                wrapper.appendChild(clone);
+                document.body.appendChild(wrapper);
+                if (modeImpression && window.self === window.top) { lancerImpression(wrapper, patient); return; }
+                let synthResultat = null;
+                try {
+                    const synthFilename = 'Bilan_Kine_Synthetique_' + (patient?.nom || 'Patient').replace(/[^a-z0-9àâäéèêëîïôöùûüç_-]/gi, '_') + '_' + new Date().toISOString().slice(0,10) + '.pdf';
+                    const blob = await html2pdf().set({margin:[8,8,8,8],filename:synthFilename,image:{type:'jpeg',quality:0.95},html2canvas:{scale:1.5,useCORS:true,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(wrapper).outputPdf('blob');
+                    const ok = await enregistrerFichier(synthFilename, blob);
+                    if (!ok) alert('Le PDF synthétique n’a pas été enregistré (téléchargement refusé ou indisponible sur cet appareil).');
+                    synthResultat = {blob, filename:synthFilename};
+                } catch (error) { console.error(error); alert('Impossible de générer le PDF synthétique : ' + ((error && error.message) || error)); }
+                finally { wrapper.remove(); }
+                return synthResultat;
+            }
 
             // Les boutons et éléments purement interactifs ne sont pas utiles dans le PDF.
             clone.querySelectorAll('button').forEach(el => el.remove());
@@ -2163,7 +2263,7 @@
             wrapper.appendChild(clone);
             document.body.appendChild(wrapper);
 
-            if (mode === 'print' && window.self === window.top) { lancerImpression(wrapper, patient); return; }
+            if (modeImpression && window.self === window.top) { lancerImpression(wrapper, patient); return; }
 
             let resultat = null;
             try {
