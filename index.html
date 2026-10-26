@@ -629,6 +629,14 @@
                 <div class="test-section bilan-projet">
                     <h3>🗣️ Avant de commencer le bilan</h3>
                     <div class="form-group">
+                        <label>Prénom du/de la thérapeute :</label>
+                        <input id="therapeute_prenom" type="text" autocomplete="name" placeholder="Prénom du/de la professionnel(le) ayant réalisé le bilan">
+                    </div>
+                    <div class="form-group">
+                        <label>Nom du/de la thérapeute :</label>
+                        <input id="therapeute_nom" type="text" autocomplete="family-name" placeholder="Nom du/de la professionnel(le) ayant réalisé le bilan">
+                    </div>
+                    <div class="form-group">
                         <label>Attentes du patient:</label>
                         <textarea id="attentes_bilan" placeholder="Qu'attend le patient de la prise en charge ?"></textarea>
                     </div>
@@ -1250,7 +1258,7 @@
                 <div class="test-section" id="sectionEnvoi" data-pdf-skip style="margin-top:20px;">
                     <h3>📤 Terminer et envoyer le bilan</h3>
                     <div class="button-group" style="margin-bottom:15px;">
-                        <button class="btn-primary" onclick="telechargerBilanPDF('print')">📄 Générer le PDF</button>
+                        <button class="btn-primary" onclick="telechargerBilanPDF('print-synthetique')">📄 Générer le PDF synthétique</button>
                     </div>
                     <h4>✉️ Envoyer au médecin</h4>
                     <p style="color:#666;font-size:.85em;margin:6px 0 12px">Pour des données de santé, privilégiez une messagerie sécurisée (MSSanté, Apicrypt). Les réglages ci-dessous sont mémorisés sur cet appareil.</p>
@@ -2058,7 +2066,10 @@
             };
             const header=document.createElement('div'); header.style.cssText='border-bottom:2px solid #455A64;padding-bottom:8px;margin-bottom:10px;';
             const h=document.createElement('h1');h.textContent='Bilan kinésithérapique gériatrique — synthèse';h.style.cssText='font-size:20px;margin:0 0 5px;color:#263746;';header.appendChild(h);
-            const meta=document.createElement('div');meta.textContent='Patient : '+(patient?.nom||'')+'  |  Date : '+new Date().toLocaleDateString('fr-FR');meta.style.fontSize='11px';header.appendChild(meta);report.appendChild(header);
+            const meta=document.createElement('div');meta.textContent='Patient : '+(patient?.nom||'')+'  |  Date : '+new Date().toLocaleDateString('fr-FR');meta.style.fontSize='11px';header.appendChild(meta);
+            const therapeute=[val('therapeute_prenom'),val('therapeute_nom')].filter(Boolean).join(' ');
+            if(therapeute){const t=document.createElement('div');t.textContent='Bilan réalisé par : '+therapeute;t.style.cssText='font-size:11px;margin-top:3px;';header.appendChild(t);}
+            report.appendChild(header);
             card('Attentes et objectifs du patient',colors.projet,[['Attentes',val('attentes_bilan')],['Objectifs exprimés',val('objectifs_patient_bilan')]]);
             const sens=[['Audition',checked('audition_probleme') ? 'Difficulté : '+checked('audition_probleme')+(checked('audition_appareil')?' ; appareil : '+checked('audition_appareil'):'') : ''],['Vision',checked('vision_probleme') ? 'Difficulté : '+checked('vision_probleme')+(checked('vision_lunettes')?' ; lunettes/lentilles : '+checked('vision_lunettes'):'') : '']];
             card('Audition et vision',colors.sens,sens);
@@ -2117,10 +2128,16 @@
                 return;
             }
 
-            const modeImpression = mode === 'print' || mode === 'print-synthetique';
+            let modeImpression = mode === 'print' || mode === 'print-synthetique';
             const versionSynthetique = mode === 'synthetique' || mode === 'print-synthetique';
-            if (!(modeImpression && window.self === window.top) && typeof html2pdf === 'undefined') {
-                alert('Le module PDF n’est pas chargé. Vérifiez votre connexion Internet.');
+            // Si la bibliothèque PDF externe ne charge pas, basculer vers l'impression du navigateur :
+            // sur téléphone, l'utilisateur peut choisir « Enregistrer au format PDF ».
+            if (!modeImpression && typeof html2pdf === 'undefined') {
+                modeImpression = true;
+                alert('Le générateur PDF automatique n’est pas disponible. La fenêtre d’impression va s’ouvrir : choisissez « Enregistrer au format PDF » si cette option est proposée.');
+            }
+            if (modeImpression && window.self !== window.top) {
+                alert('L’impression est bloquée dans cette fenêtre intégrée. Ouvrez l’application directement dans Safari ou Chrome, puis réessayez.');
                 return;
             }
 
@@ -2157,6 +2174,7 @@
                     <strong>Patient :</strong> ${escapeHtml(patient ? patient.nom : '')}
                     &nbsp;&nbsp;|&nbsp;&nbsp;
                     <strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}
+                    ${(source.querySelector('#therapeute_prenom')?.value || source.querySelector('#therapeute_nom')?.value) ? `<br><strong>Bilan réalisé par :</strong> ${escapeHtml([source.querySelector('#therapeute_prenom')?.value || '', source.querySelector('#therapeute_nom')?.value || ''].filter(Boolean).join(' '))}` : ''}
                 </div>
             `;
             wrapper.appendChild(title);
@@ -2215,25 +2233,33 @@
                     el.remove();
                     return;
                 }
-                const span = document.createElement('span');
-                span.textContent = value;
-                span.style.cssText = 'display:inline-block; min-width:40px; padding:3px 5px; border:1px solid #ddd; border-radius:4px; background:#fafafa; font-size:12px;';
-                el.replaceWith(span);
+                if (el.tagName === 'TEXTAREA') {
+                    const block = document.createElement('div');
+                    block.className = 'pdf-field-value';
+                    block.textContent = value;
+                    block.style.cssText = 'display:block;width:100%;max-width:100%;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal;padding:6px 8px;margin:4px 0 8px;border:1px solid #d5dbe3;border-radius:4px;background:#fff;font-size:11px;line-height:1.4;min-height:18px;';
+                    el.replaceWith(block);
+                } else {
+                    const span = document.createElement('span');
+                    span.textContent = value;
+                    span.style.cssText = 'display:inline-block;max-width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;vertical-align:top;padding:3px 5px;border:1px solid #ddd;border-radius:4px;background:#fafafa;font-size:11px;';
+                    el.replaceWith(span);
+                }
             });
 
             // Retirer les libellés/champs vides et les sections facultatives sans contenu.
             clone.querySelectorAll('.form-group').forEach(group => {
                 // Après conversion, un champ renseigné possède un span de valeur ou un marqueur coché.
-                const hasRenderedValue = !!group.querySelector('span, img, canvas');
+                const hasRenderedValue = !!group.querySelector('span, img, canvas, .pdf-field-value');
                 const hasRemainingControl = !!group.querySelector('input,select,textarea');
                 if (!hasRenderedValue && !hasRemainingControl) group.remove();
             });
             // Les blocs de tests entièrement vides ne sont pas imprimés. On ne compte pas les titres ni les consignes.
             clone.querySelectorAll('#sectionTinetti, .test-section').forEach(section => {
-                const hasUserData = !!section.querySelector('span, img, canvas') && Array.from(section.querySelectorAll('span')).some(el => {
+                const hasUserData = (!!section.querySelector('.pdf-field-value, img, canvas')) || (!!section.querySelector('span, img, canvas') && Array.from(section.querySelectorAll('span')).some(el => {
                     const t = (el.textContent || '').trim();
                     return t && t !== '—' && !/^À remplir$/i.test(t);
-                });
+                }));
                 const hasChecked = !!section.querySelector('span');
                 const hasNonEmptyText = Array.from(section.querySelectorAll('input,select,textarea')).some(el => !!(el.value || '').trim());
                 if (!hasUserData && !hasChecked && !hasNonEmptyText && !section.querySelector('img,canvas')) section.remove();
@@ -2249,6 +2275,13 @@
                 clonedCanvas.replaceWith(img);
             }
 
+            // Mise en page du bilan complet : largeur utile, retours à la ligne et sections séparables entre pages.
+            clone.style.cssText += ';width:100%;max-width:100%;box-sizing:border-box;font-family:Arial,sans-serif;font-size:11px;line-height:1.35;overflow:visible;';
+            clone.querySelectorAll('.test-section, .form-group, .bilan-projet').forEach(el => {
+                el.style.maxWidth = '100%'; el.style.boxSizing = 'border-box'; el.style.overflow = 'visible';
+                el.style.breakInside = 'auto'; el.style.pageBreakInside = 'auto';
+            });
+            clone.querySelectorAll('h2,h3,h4,label').forEach(el => { el.style.maxWidth='100%'; el.style.whiteSpace='normal'; el.style.overflowWrap='anywhere'; });
             wrapper.appendChild(clone);
             document.body.appendChild(wrapper);
 
